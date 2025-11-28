@@ -1,0 +1,9 @@
+titulo=Ejemplo Producto
+precio=100
+categoria=Electrónica e informática
+estado=Nuevo
+descripcion=Descripción detallada del producto aquí
+disponibilidad=Publicar como disponible
+encuentro_publico=Si
+etiquetas=
+sku=
