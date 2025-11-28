@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import time
 import os
 
@@ -14,49 +15,27 @@ class PublicadorMarketplace:
         self.wait = None
     
     def iniciar_navegador(self):
-        """Inicia Opera con la sesión actual de Facebook"""
-        print("🌐 Iniciando Opera...")
+        """Inicia Chrome con perfil dedicado para el bot"""
+        print("🌐 Iniciando Chrome...")
         
-        # Ruta de Opera One en Windows
-        ruta_opera = r"C:\Users\welli\AppData\Local\Programs\Opera\opera.exe"
-        
-        # Ruta del driver de Opera (descarga manual necesaria)
-        ruta_driver = r"C:\Users\welli\OneDrive\Documents\Repositorios\publicador-automatico-marketplace\drivers\operadriver.exe"
-        
-        # Configurar opciones para Opera
+        # Configurar opciones para Chrome
         opciones = webdriver.ChromeOptions()
-        opciones.binary_location = ruta_opera
         
-        # Usar perfil existente para mantener sesión de Facebook
-        ruta_perfil = r"C:\Users\welli\AppData\Roaming\Opera Software\Opera Stable"
-        opciones.add_argument(f"--user-data-dir={ruta_perfil}")
-        
-        # Crear directorio temporal para evitar conflictos
-        opciones.add_argument("--remote-debugging-port=9222")
+        # Usar perfil dedicado para el bot (se creará automáticamente)
+        ruta_perfil_bot = os.path.join(os.getcwd(), "perfil_bot_marketplace")
+        opciones.add_argument(f"--user-data-dir={ruta_perfil_bot}")
         
         # Opciones adicionales
         opciones.add_argument("--disable-blink-features=AutomationControlled")
         opciones.add_experimental_option("excludeSwitches", ["enable-automation"])
         opciones.add_experimental_option('useAutomationExtension', False)
         
-        # Verificar que existe el driver
-        if not os.path.exists(ruta_driver):
-            print(f"❌ No se encontró el driver en: {ruta_driver}")
-            print("\n📥 Descarga el OperaDriver desde:")
-            print("https://github.com/operasoftware/operachromiumdriver/releases")
-            print("Busca la versión 140.x y extrae operadriver.exe en la carpeta 'drivers'")
-            return False
-        
         # Iniciar driver
-        try:
-            servicio = Service(ruta_driver)
-            self.driver = webdriver.Chrome(service=servicio, options=opciones)
-            self.wait = WebDriverWait(self.driver, 20)
-            print("✅ Navegador iniciado")
-            return True
-        except Exception as e:
-            print(f"❌ Error al iniciar navegador: {e}")
-            return False
+        servicio = Service(ChromeDriverManager().install())
+        self.driver = webdriver.Chrome(service=servicio, options=opciones)
+        self.wait = WebDriverWait(self.driver, 20)
+        
+        print("✅ Navegador iniciado")
     
     def ir_a_marketplace(self):
         """Navega a la página de creación de publicación en Marketplace"""
@@ -79,11 +58,12 @@ if __name__ == "__main__":
     publicador = PublicadorMarketplace()
     
     try:
-        if publicador.iniciar_navegador():
-            publicador.ir_a_marketplace()
-            
-            print("\n⏳ Esperando 10 segundos para que veas la página...")
-            time.sleep(10)
+        publicador.iniciar_navegador()
+        publicador.ir_a_marketplace()
+        
+        print("\n⏳ Esperando 30 segundos...")
+        print("👉 Si no estás logueado, inicia sesión en Facebook ahora")
+        time.sleep(30)
         
     except Exception as error:
         print(f"❌ Error: {error}")
