@@ -20,8 +20,6 @@ def main():
     numero_articulo = obtener_numero_articulo()
     
     if not numero_articulo:
-        print("\nPresiona Enter para cerrar...")
-        input()
         return
     
     print(f"\n✅ Artículo seleccionado: Articulo_{numero_articulo}")
@@ -32,8 +30,6 @@ def main():
     
     if not datos:
         print("❌ No se pudieron leer los datos del artículo")
-        print("\nPresiona Enter para cerrar...")
-        input()
         return
     
     # Mostrar información del artículo
@@ -46,8 +42,6 @@ def main():
     
     if len(imagenes) == 0:
         print("⚠️  No hay imágenes. Agrega imágenes en la carpeta 'imagenes' antes de publicar.")
-        print("\nPresiona Enter para cerrar...")
-        input()
         return
     
     # Iniciar publicación automática
@@ -64,8 +58,8 @@ def main():
             guardar_numero_config(siguiente)
             print(f"💾 Próximo artículo será: Articulo_{siguiente}")
         
-        print("\n⏳ Esperando 5 segundos para que veas el resultado...")
-        time.sleep(5)
+        print("\n⏳ Esperando 2 segundos...")
+        time.sleep(2)
         
     except Exception as error:
         print(f"❌ Error durante la publicación: {error}")
@@ -73,8 +67,7 @@ def main():
     finally:
         publicador.cerrar_navegador()
     
-    print("\nPresiona Enter para cerrar...")
-    input()
+    print("\n✅ Proceso finalizado")
 
 
 if __name__ == "__main__":

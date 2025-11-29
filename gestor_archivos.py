@@ -39,7 +39,7 @@ estado=Nuevo
 descripcion=Descripción detallada del producto aquí
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
-etiquetas=
+etiquetas=teclado,rgb,gaming,mecanico
 sku="""
             with open(archivo_datos, 'w', encoding='utf-8') as f:
                 f.write(plantilla)
@@ -88,36 +88,53 @@ def guardar_numero_config(numero):
 
 def obtener_numero_articulo():
     """Solicita número al usuario o lee automáticamente de config.txt"""
+    import threading
+    
     total_articulos = contar_articulos()
     
     if total_articulos == 0:
-        print("❌ No hay artículos disponibles. Ejecuta primero la creación de estructura.")
+        print("❌ No hay artículos disponibles.")
         return None
     
     print(f"\n📦 Total de artículos disponibles: {total_articulos}")
-    print("Ingresa el número del artículo a publicar (0 para automático):")
-    print("Esperando 5 segundos...")
+    print("Ingresa el número del artículo a publicar (0 o Enter para automático):")
+    print("Esperando 7 segundos...")
     
-    # Esperar input del usuario
-    entrada_usuario = ""
+    # Variable para almacenar el input
+    entrada_usuario = [""]
     
-    try:
-        entrada_usuario = input("Número: ")
-    except:
-        entrada_usuario = ""
+    def obtener_input():
+        try:
+            entrada_usuario[0] = input("Número: ")
+        except:
+            pass
+    
+    # Crear thread para input
+    thread_input = threading.Thread(target=obtener_input)
+    thread_input.daemon = True
+    thread_input.start()
+    
+    # Esperar 7 segundos
+    thread_input.join(timeout=7)
     
     # Procesar entrada
-    try:
-        numero = int(entrada_usuario)
-        
-        # Si es 0 o inválido, leer de config
-        if numero <= 0 or numero > total_articulos:
-            numero = leer_numero_config()
-            print(f"📖 Leyendo de config.txt: Artículo {numero}")
-    except:
-        # Si no es un número válido, leer de config
+    numero = None
+    if entrada_usuario[0].strip():
+        try:
+            numero = int(entrada_usuario[0])
+            if numero <= 0 or numero > total_articulos:
+                print(f"❌ Número inválido. Usando automático...")
+                numero = None
+        except:
+            print(f"❌ Entrada inválida. Usando automático...")
+            numero = None
+    
+    # Si no hay número válido, leer de config
+    if numero is None:
         numero = leer_numero_config()
-        print(f"📖 Leyendo de config.txt: Artículo {numero}")
+        print(f"📖 Usando automáticamente: Artículo {numero}")
+    else:
+        print(f"✅ Seleccionado manualmente: Artículo {numero}")
     
     # Validar que el número esté en rango
     if numero > total_articulos:
