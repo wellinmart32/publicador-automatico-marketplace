@@ -1,0 +1,27 @@
+# Ignorar imágenes de artículos
+ArticulosMarketplace/*/imagenes/*
+
+# Ignorar perfil del bot
+perfil_bot_marketplace/
+
+# Ignorar drivers
+drivers/
+
+# Ignorar archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar screenshots de errores
+error_publicacion.png
+
+# Ignorar archivos temporales de Windows
+Thumbs.db
+desktop.ini
+
+# Ignorar archivos de VSCode
+.vscode/
+
+# Mantener las carpetas vacías
+!ArticulosMarketplace/*/imagenes/.gitkeep
