@@ -1,0 +1,22 @@
+# ============================================================
+# CONFIGURACIÓN GLOBAL DEL SISTEMA
+# ============================================================
+
+[GENERAL]
+cantidad_productos = 5
+modo = completo
+
+[EXTRACCION]
+contacto_whatsapp = Trabajo John
+auto_scroll = 5
+productos_por_extraccion = 5
+
+[PUBLICACION]
+auto_publicar = si
+tiempo_entre_publicaciones = 10
+max_publicaciones_por_dia = 20
+publicar_todos = si
+
+[SEGURIDAD]
+confirmacion_borrado = si
+backup_antes_borrar = si

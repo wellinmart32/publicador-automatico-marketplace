@@ -1,36 +1,37 @@
-from compartido.gestor_archivos import crear_estructura_carpetas
-import time
-import sys
+from compartido.gestor_archivos import crear_estructura_carpetas, leer_config_global
 
 
 def main():
-    """Script para crear la estructura de carpetas de artículos - CON CONTADOR"""
+    """Script para crear/actualizar la estructura de carpetas - VERSIÓN INTELIGENTE"""
     
     print("\n" + "="*60)
-    print("📁 CREADOR DE ESTRUCTURA DE ARTÍCULOS")
+    print("📁 GESTOR INTELIGENTE DE ESTRUCTURA")
     print("="*60 + "\n")
     
-    print("⏳ Iniciando creación en 3 segundos...")
-    print("   (Presiona Ctrl+C para cancelar)\n")
-    
+    # Leer configuración
     try:
-        for i in range(3, 0, -1):
-            print(f"   {i}...", end='\r')
-            sys.stdout.flush()
-            time.sleep(1)
-        print("   ✅ ¡Creando estructura!\n")
-    except KeyboardInterrupt:
-        print("\n\n❌ Cancelado por el usuario\n")
-        sys.exit(0)
+        config = leer_config_global()
+        print(f"⚙️  Configuración cargada:")
+        print(f"   Carpetas configuradas: {config['cantidad_productos']}")
+        print(f"   Confirmación de borrado: {'Sí' if config['confirmacion_borrado'] else 'No'}")
+        print(f"   Backup antes de borrar: {'Sí' if config['backup_antes_borrar'] else 'No'}")
+    except Exception as e:
+        print(f"⚠️  Error leyendo configuración: {e}")
+        print("   Usando valores por defecto...")
     
+    print("\n" + "="*60)
+    print("Este script hará:")
+    print("  ✓ Crear carpetas faltantes")
+    print("  ✓ Eliminar carpetas sobrantes (con confirmación)")
+    print("  ✓ Crear backup antes de eliminar (si está configurado)")
+    print("="*60 + "\n")
+    
+    # Ejecutar creación/actualización
     crear_estructura_carpetas()
     
     print("\n💡 Siguiente paso:")
     print("   Ejecuta '2_Extraer_Catalogo.bat' para poblar con datos de WhatsApp")
-    print("   O llena manualmente las carpetas con imágenes y datos.txt")
-    
-    print("\n⏳ Cerrando en 3 segundos...")
-    time.sleep(3)
+    print("   O llena manualmente las carpetas con imágenes y datos.txt\n")
 
 
 if __name__ == "__main__":
