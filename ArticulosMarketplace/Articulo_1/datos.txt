@@ -1,9 +1,10 @@
-titulo=Ejemplo Producto
-precio=100
+titulo=Trabajo John
+precio=43
 categoria=Electrónica e informática
 estado=Nuevo
-descripcion=Descripción detallada del producto aquí
+ubicacion=Mall del Sol, Guayaquil
+descripcion=Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
-etiquetas=teclado,rgb,gaming,mecanico
+etiquetas=
 sku=

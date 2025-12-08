@@ -1,9 +1,10 @@
-titulo=Ejemplo Producto
-precio=100
+titulo=Trabajo John
+precio=11
 categoria=Electrónica e informática
 estado=Nuevo
-descripcion=Descripción detallada del producto aquí
+ubicacion=Mall del Sol, Guayaquil
+descripcion=Color: Negro | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
-etiquetas=teclado,rgb,gaming,mecanico
+etiquetas=
 sku=
