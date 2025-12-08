@@ -9,7 +9,7 @@ import time
 import os
 
 class PublicadorMarketplace:
-    """Maneja la automatización de publicaciones en Facebook Marketplace"""
+    """Maneja la automatización de publicaciones en Facebook Marketplace - CON CORRECCIONES"""
     
     def __init__(self):
         self.driver = None
@@ -95,16 +95,35 @@ class PublicadorMarketplace:
         return False
     
     def llenar_precio(self, precio):
-        """Llena el campo de precio"""
-        print(f"💰 Precio: ${precio}")
+        """Llena el campo de precio - ✅ CORREGIDO PARA FORMATO CORRECTO"""
+        print(f"💰 Precio original: ${precio}")
+        
         try:
+            # ✅ CONVERTIR A FORMATO ENTERO (SIN DECIMALES)
+            # Facebook Marketplace en muchas regiones NO acepta decimales
+            # y si envías "43.00" lo interpreta como "4300"
+            
+            try:
+                precio_float = float(precio)
+                precio_entero = int(precio_float)  # Convierte 43.00 → 43
+                precio_texto = str(precio_entero)
+            except:
+                precio_texto = str(precio).replace('.', '').replace(',', '')
+            
+            print(f"💰 Precio formateado: ${precio_texto}")
+            
             # Buscar input con dir="ltr" dentro del label que contiene "Precio"
             campo = self.driver.find_element(By.XPATH, "//span[text()='Precio']/../..//input[@dir='ltr']")
             campo.clear()
-            campo.send_keys(str(precio))
             time.sleep(0.3)
-            print("✅ Precio ingresado")
+            
+            # ✅ ENVIAR SOLO NÚMEROS, SIN PUNTO NI COMA
+            campo.send_keys(precio_texto)
+            time.sleep(0.5)
+            
+            print("✅ Precio ingresado correctamente")
             return True
+            
         except Exception as e:
             print(f"❌ Error en precio: {e}")
         return False
@@ -146,6 +165,74 @@ class PublicadorMarketplace:
         except Exception as e:
             print(f"❌ Error en estado: {e}")
         return False
+    
+    def configurar_ubicacion(self, ubicacion_deseada="Mall del Sol, Guayaquil"):
+        """✅ NUEVO: Configura la ubicación del producto"""
+        print(f"📍 Configurando ubicación: {ubicacion_deseada}")
+        
+        try:
+            # Buscar el campo de ubicación
+            # El campo puede tener diferentes selectores según la versión de Facebook
+            selectores_ubicacion = [
+                "//label[contains(., 'Ubicación')]//input",
+                "//span[text()='Ubicación']/../..//input",
+                "//input[@placeholder='Ubicación']",
+                "//input[contains(@aria-label, 'Ubicación')]"
+            ]
+            
+            campo_ubicacion = None
+            for selector in selectores_ubicacion:
+                try:
+                    campo_ubicacion = self.driver.find_element(By.XPATH, selector)
+                    if campo_ubicacion:
+                        break
+                except:
+                    continue
+            
+            if not campo_ubicacion:
+                print("⚠️  No se encontró el campo de ubicación")
+                return False
+            
+            # Hacer scroll hasta el campo
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
+                campo_ubicacion
+            )
+            time.sleep(0.8)
+            
+            # Limpiar y llenar ubicación
+            campo_ubicacion.click()
+            time.sleep(0.5)
+            
+            # Limpiar campo (puede tener ubicación automática)
+            campo_ubicacion.clear()
+            time.sleep(0.3)
+            
+            # Escribir nueva ubicación
+            campo_ubicacion.send_keys(ubicacion_deseada)
+            time.sleep(2)  # Esperar sugerencias
+            
+            # Presionar Enter o hacer clic en la primera sugerencia
+            try:
+                # Buscar primera sugerencia en el dropdown
+                primera_sugerencia = self.driver.find_element(By.XPATH, 
+                    "//div[@role='listbox']//div[@role='option'][1]"
+                )
+                primera_sugerencia.click()
+                time.sleep(0.5)
+                print("✅ Ubicación seleccionada de sugerencias")
+            except:
+                # Si no hay sugerencias, presionar Enter
+                campo_ubicacion.send_keys(Keys.RETURN)
+                time.sleep(0.5)
+                print("✅ Ubicación ingresada manualmente")
+            
+            return True
+            
+        except Exception as e:
+            print(f"⚠️  Error configurando ubicación: {e}")
+            print("   Continuando con ubicación automática...")
+            return False
     
     def llenar_descripcion(self, descripcion):
         """Llena el campo de descripción"""
@@ -236,9 +323,6 @@ class PublicadorMarketplace:
     
     def configurar_disponibilidad(self, disponibilidad, encuentro_publico):
         """Configura disponibilidad y encuentro en lugar público"""
-        # Omitir disponibilidad ya que Facebook la pone por defecto
-        # print(f"📦 Disponibilidad: {disponibilidad}")
-        
         try:
             # Marcar encuentro en lugar público
             if encuentro_publico.lower() == "si":
@@ -311,7 +395,7 @@ class PublicadorMarketplace:
         return False
     
     def publicar_producto_completo(self, datos, imagenes):
-        """Publica un producto completo en Marketplace"""
+        """Publica un producto completo en Marketplace - ✅ CON CORRECCIONES"""
         print("\n" + "="*50)
         print("🎯 INICIANDO PUBLICACIÓN")
         print("="*50 + "\n")
@@ -329,9 +413,16 @@ class PublicadorMarketplace:
         
         # Llenar campos obligatorios
         self.llenar_titulo(datos.get('titulo', ''))
+        
+        # ✅ PRECIO CORREGIDO
         self.llenar_precio(datos.get('precio', '0'))
+        
         self.seleccionar_categoria(datos.get('categoria', 'Electrónica e informática'))
         self.seleccionar_estado(datos.get('estado', 'Nuevo'))
+        
+        # ✅ CONFIGURAR UBICACIÓN
+        ubicacion = datos.get('ubicacion', 'Mall del Sol, Guayaquil')
+        self.configurar_ubicacion(ubicacion)
         
         # Llenar descripción
         self.llenar_descripcion(datos.get('descripcion', ''))

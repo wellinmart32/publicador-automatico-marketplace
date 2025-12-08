@@ -1,12 +1,12 @@
 from extractores.extractor_whatsapp import ExtractorWhatsApp
-from compartido.gestor_archivos import leer_config_global
+from compartido.gestor_archivos import leer_config_global, contar_articulos
 from gestor_registro import GestorRegistro
 import sys
 import time
 
 
 def main():
-    """Script para extraer productos del catálogo de WhatsApp - VERSIÓN SIMPLIFICADA"""
+    """Script para extraer productos del catálogo de WhatsApp - CON CONTINUACIÓN INTELIGENTE"""
     
     print("\n" + "="*60)
     print("📱 EXTRACTOR DE CATÁLOGO DE WHATSAPP")
@@ -21,10 +21,35 @@ def main():
         input("\nPresiona Enter para salir...")
         return
     
+    # Inicializar gestor de registro
+    gestor = GestorRegistro()
+    
+    # Determinar desde qué artículo comenzar
+    articulo_inicio = 1
+    total_carpetas = contar_articulos()
+    
+    if gestor.registro['pendientes']:
+        # Si hay pendientes, tomar el mínimo (el más antiguo)
+        articulo_inicio = min(gestor.registro['pendientes'])
+        print(f"📦 Hay artículos pendientes, continuando desde Articulo_{articulo_inicio}\n")
+    elif gestor.registro['ultimo_articulo_publicado'] > 0:
+        # Si no hay pendientes, continuar desde el siguiente al último publicado
+        articulo_inicio = gestor.registro['ultimo_articulo_publicado'] + 1
+        
+        # Rotación: Si excede el total, volver a 1
+        if articulo_inicio > total_carpetas:
+            articulo_inicio = 1
+            print(f"🔄 Rotación completada, reiniciando desde Articulo_1\n")
+        else:
+            print(f"➡️  Continuando desde Articulo_{articulo_inicio}\n")
+    else:
+        print(f"🆕 Primera extracción, comenzando desde Articulo_1\n")
+    
     # Mostrar configuración
     print("⚙️  CONFIGURACIÓN AUTOMÁTICA:\n")
     print(f"   📱 Contacto WhatsApp: {config['contacto_whatsapp']}")
     print(f"   📦 Productos a extraer: {config['productos_por_extraccion']}")
+    print(f"   🎯 Artículo inicial: {articulo_inicio}")
     print(f"   📜 Auto scroll: {config['auto_scroll']} veces")
     print(f"   🚀 Auto publicar: {'Sí' if config['auto_publicar'] else 'No'}")
     
@@ -43,9 +68,6 @@ def main():
         print("\n\n❌ Cancelado por el usuario\n")
         sys.exit(0)
     
-    # Inicializar gestor de registro
-    gestor = GestorRegistro()
-    
     # Ejecutar extracción
     extractor = ExtractorWhatsApp()
     
@@ -53,15 +75,17 @@ def main():
         print("🌐 Iniciando navegador y conectando a WhatsApp Web...")
         productos_extraidos = extractor.ejecutar(
             config['contacto_whatsapp'], 
-            config['productos_por_extraccion']
+            config['productos_por_extraccion'],
+            articulo_inicio  # ✅ NUEVO: Indicar desde dónde empezar
         )
         
         # Registrar productos extraídos
         if productos_extraidos:
             print("\n📝 Registrando productos extraídos...")
-            for idx, producto in enumerate(productos_extraidos, 1):
+            for idx, producto in enumerate(productos_extraidos):
+                numero_articulo = articulo_inicio + idx
                 gestor.registrar_extraccion(
-                    articulo=idx,
+                    articulo=numero_articulo,
                     titulo=producto.get('titulo', 'Sin título'),
                     precio=producto.get('precio', '0'),
                     descripcion=producto.get('descripcion', '')

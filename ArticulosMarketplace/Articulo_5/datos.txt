@@ -1,9 +1,9 @@
-titulo=Negro - Cuero PU
-precio=11.00
+titulo=Ejemplo Producto
+precio=100
 categoria=Electrónica e informática
 estado=Nuevo
-descripcion=Color: Negro | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm
+descripcion=Descripción detallada del producto aquí
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
-etiquetas=
+etiquetas=teclado,rgb,gaming,mecanico
 sku=
