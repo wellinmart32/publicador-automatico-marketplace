@@ -134,13 +134,22 @@ class ExtractorWhatsApp:
         try:
             elemento_productos = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Productos')]")
             elemento_productos.click()
-            time.sleep(2)
+            time.sleep(3)
             
             print("✅ Catálogo abierto")
             return True
             
         except Exception as e:
             print(f"❌ Error abriendo catálogo: {e}")
+            return False
+    
+    def verificar_en_catalogo(self):
+        """Verifica que estamos en la vista del catálogo"""
+        try:
+            # Buscar el botón volver o algún elemento característico del catálogo
+            catalogo_visible = self.driver.find_elements(By.XPATH, "//span[contains(text(), 'Catálogo')]")
+            return len(catalogo_visible) > 0
+        except:
             return False
     
     def contar_productos_catalogo(self):
@@ -155,7 +164,7 @@ class ExtractorWhatsApp:
             return 0
     
     def extraer_productos(self, cantidad_maxima=5):
-        """Extrae los datos de los productos del catálogo"""
+        """Extrae los datos de los productos del catálogo - VERSIÓN ROBUSTA"""
         print(f"\n🎯 Iniciando extracción de hasta {cantidad_maxima} productos...\n")
         
         productos_extraidos = []
@@ -163,47 +172,77 @@ class ExtractorWhatsApp:
         for intento_producto in range(cantidad_maxima):
             print(f"📦 Procesando producto {intento_producto + 1}/{cantidad_maxima}...")
             
-            try:
-                time.sleep(2.5)
-                
-                items_productos = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
-                
-                if intento_producto >= len(items_productos):
-                    print(f"  ⚠️  Solo hay {len(items_productos)} productos en esta vista")
-                    break
-                
-                # Scroll y clic
-                producto_actual = items_productos[intento_producto]
-                self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", producto_actual)
-                time.sleep(1.5)
-                
-                producto_actual.click()
-                time.sleep(4)  # Esperar más tiempo a que cargue completamente
-                
-                # Extraer datos
-                producto = self.extraer_datos_producto()
-                
-                if producto:
-                    productos_extraidos.append(producto)
-                    print(f"✅ Producto extraído: {producto['titulo']}\n")
-                
-                # Volver
-                self.volver_a_catalogo()
-                time.sleep(3.5)  # Esperar más antes del siguiente
-                
-            except StaleElementReferenceException:
-                print(f"  ⚠️  Elemento obsoleto, continuando...\n")
-                time.sleep(2)
-                continue
-                
-            except Exception as e:
-                print(f"  ⚠️  Error procesando producto {intento_producto + 1}: {e}\n")
+            intentos_click = 0
+            max_intentos = 3
+            
+            while intentos_click < max_intentos:
                 try:
-                    self.volver_a_catalogo()
+                    # CLAVE: Re-buscar la lista de productos CADA VEZ
                     time.sleep(2)
-                except:
-                    pass
-                continue
+                    
+                    # Verificar que estamos en el catálogo
+                    if not self.verificar_en_catalogo():
+                        print("  ⚠️  No estamos en el catálogo, intentando volver...")
+                        if not self.volver_a_catalogo_forzado():
+                            print("  ❌ No se pudo volver al catálogo")
+                            break
+                        time.sleep(2)
+                    
+                    # RE-BUSCAR productos (lista fresca)
+                    items_productos = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
+                    
+                    if intento_producto >= len(items_productos):
+                        print(f"  ⚠️  Solo hay {len(items_productos)} productos en esta vista")
+                        return productos_extraidos
+                    
+                    # Obtener el producto actual
+                    producto_actual = items_productos[intento_producto]
+                    
+                    # Hacer scroll al producto
+                    self.driver.execute_script(
+                        "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
+                        producto_actual
+                    )
+                    time.sleep(1.5)
+                    
+                    # Hacer clic
+                    producto_actual.click()
+                    time.sleep(4)
+                    
+                    # Extraer datos
+                    producto = self.extraer_datos_producto()
+                    
+                    if producto:
+                        productos_extraidos.append(producto)
+                        print(f"✅ Producto extraído: {producto['titulo']}\n")
+                    
+                    # Volver al catálogo
+                    if not self.volver_a_catalogo():
+                        print("  ⚠️  Error al volver, intentando método alternativo...")
+                        self.volver_a_catalogo_forzado()
+                    
+                    time.sleep(3)
+                    
+                    # Si llegamos aquí, salir del while
+                    break
+                    
+                except StaleElementReferenceException:
+                    intentos_click += 1
+                    print(f"  ⚠️  Elemento obsoleto, reintento {intentos_click}/{max_intentos}...")
+                    time.sleep(2)
+                    if intentos_click >= max_intentos:
+                        print(f"  ❌ No se pudo procesar producto {intento_producto + 1} después de {max_intentos} intentos")
+                        break
+                    continue
+                    
+                except Exception as e:
+                    print(f"  ⚠️  Error procesando producto {intento_producto + 1}: {e}\n")
+                    try:
+                        self.volver_a_catalogo_forzado()
+                        time.sleep(2)
+                    except:
+                        pass
+                    break
         
         print(f"\n✅ Extracción completada: {len(productos_extraidos)} productos")
         return productos_extraidos
@@ -213,22 +252,57 @@ class ExtractorWhatsApp:
         try:
             print("  ← Volviendo al catálogo...")
             
-            # Método 1: Buscar el primer botón del header
+            # Buscar el primer botón del header
             botones_header = self.driver.find_elements(By.XPATH, "//header//button")
             
             if botones_header:
                 botones_header[0].click()
-                time.sleep(2)
+                time.sleep(2.5)
                 return True
             else:
-                # Método 2: ESC
-                from selenium.webdriver.common.keys import Keys
-                self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
-                time.sleep(2)
-                return True
+                return False
                 
         except Exception as e:
             print(f"  ⚠️  Error al volver: {e}")
+            return False
+    
+    def volver_a_catalogo_forzado(self):
+        """Vuelve al catálogo usando múltiples métodos"""
+        try:
+            # Método 1: Botón header
+            try:
+                botones = self.driver.find_elements(By.XPATH, "//header//button")
+                if botones:
+                    botones[0].click()
+                    time.sleep(2)
+                    if self.verificar_en_catalogo():
+                        return True
+            except:
+                pass
+            
+            # Método 2: ESC
+            try:
+                from selenium.webdriver.common.keys import Keys
+                self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                time.sleep(2)
+                if self.verificar_en_catalogo():
+                    return True
+            except:
+                pass
+            
+            # Método 3: Buscar y hacer clic en "Catálogo"
+            try:
+                enlace_catalogo = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Catálogo')]")
+                enlace_catalogo.click()
+                time.sleep(2)
+                return True
+            except:
+                pass
+            
+            return False
+            
+        except Exception as e:
+            print(f"  ❌ Error en volver forzado: {e}")
             return False
     
     def extraer_datos_producto(self):
@@ -241,25 +315,22 @@ class ExtractorWhatsApp:
                 'imagen_elemento': None
             }
             
-            # Esperar a que cargue completamente
-            time.sleep(3)
+            # Esperar más tiempo a que cargue completamente
+            time.sleep(4)
             
-            # EXTRAER TÍTULO - Solo del área principal de detalles
+            # EXTRAER TÍTULO
             try:
-                # Buscar específicamente en el contenedor de detalles del producto
-                # Evitar el nombre del contacto
                 titulos_posibles = self.driver.find_elements(By.XPATH, 
                     "//div[contains(@class, 'x1okw0bk')]//span[contains(@class, 'selectable-text')]"
                 )
                 
-                for titulo_elem in titulos_posibles[:8]:
+                for titulo_elem in titulos_posibles[:10]:
                     try:
                         if not titulo_elem.is_displayed():
                             continue
                         
                         texto = titulo_elem.text.strip()
                         
-                        # Validaciones estrictas
                         if (texto and 
                             8 < len(texto) < 70 and 
                             '$' not in texto and 
@@ -268,12 +339,13 @@ class ExtractorWhatsApp:
                             'Marca:' not in texto and
                             'Modelo:' not in texto and
                             'Color:' not in texto and
-                            'Trabajo' not in texto and  # Evitar nombre del contacto
+                            'Trabajo' not in texto and
                             'John' not in texto and
                             'Detalles' not in texto and
                             'Catálogo' not in texto and
                             'TECLADOS' not in texto and
-                            'MOUSES' not in texto):
+                            'MOUSES' not in texto and
+                            'MOUSEPADS' not in texto):
                             
                             producto['titulo'] = texto
                             print(f"  → Título encontrado: {texto}")
@@ -294,11 +366,10 @@ class ExtractorWhatsApp:
                     "//*[starts-with(text(), '$') and string-length(text()) < 15]"
                 )
                 
-                for precio_elem in precios[:3]:
+                for precio_elem in precios[:5]:
                     try:
                         if precio_elem.is_displayed():
                             precio_texto = precio_elem.text.strip()
-                            # Tomar solo el primer precio (puede haber precio tachado)
                             precio_limpio = precio_texto.split()[0].replace('$', '').replace(',', '').strip()
                             
                             if precio_limpio and precio_limpio.replace('.', '').isdigit():
@@ -324,11 +395,10 @@ class ExtractorWhatsApp:
             except:
                 pass
             
-            # EXTRAER DESCRIPCIÓN - Solo elementos visibles en el área de detalles
+            # EXTRAER DESCRIPCIÓN
             try:
                 detalles = []
                 
-                # Buscar SOLO en el área de detalles visible
                 contenedor_detalles = self.driver.find_element(By.XPATH, 
                     "//div[contains(@class, 'x1okw0bk')]"
                 )
@@ -341,16 +411,13 @@ class ExtractorWhatsApp:
                 
                 for detalle_elem in elementos_detalles[:15]:
                     try:
-                        # Verificar que el elemento esté en el viewport
                         location = detalle_elem.location
                         size = detalle_elem.size
                         
-                        # Solo elementos que realmente están visibles
                         if location['y'] > 0 and size['height'] > 0:
                             texto = detalle_elem.text.strip()
                             
                             if texto and 5 < len(texto) < 200:
-                                # Tomar solo la primera línea si hay múltiples
                                 primera_linea = texto.split('\n')[0].strip()
                                 
                                 if (primera_linea and 
@@ -376,12 +443,10 @@ class ExtractorWhatsApp:
                 print(f"  ⚠️  Error extrayendo descripción")
                 producto['descripcion'] = "Sin descripción"
             
-            # CAPTURAR ELEMENTO DE IMAGEN para screenshot
+            # CAPTURAR IMAGEN
             try:
-                # Esperar a que la imagen termine de cargar
                 time.sleep(2)
                 
-                # Buscar la imagen principal
                 imagen = self.driver.find_element(By.XPATH, 
                     "//img[@class='_ak9n' or (contains(@class, '_ak9n') and @draggable='false')]"
                 )
@@ -406,29 +471,24 @@ class ExtractorWhatsApp:
         try:
             print(f"  📸 Capturando imagen...")
             
-            # Hacer scroll al elemento y esperar
             self.driver.execute_script(
                 "arguments[0].scrollIntoView({behavior: 'auto', block: 'center'});", 
                 elemento
             )
             time.sleep(1.5)
             
-            # Obtener posición y tamaño
             location = elemento.location
             size = elemento.size
             
-            # Tomar screenshot completo de la ventana
             screenshot = self.driver.get_screenshot_as_png()
             img = Image.open(BytesIO(screenshot))
             
-            # Calcular coordenadas con margen generoso
             margen = 50
             left = max(0, location['x'] - margen)
             top = max(0, location['y'] - margen)
             right = min(img.width, location['x'] + size['width'] + margen)
             bottom = min(img.height, location['y'] + size['height'] + margen)
             
-            # Verificar que las coordenadas sean válidas
             if right > left and bottom > top:
                 imagen_recortada = img.crop((left, top, right, bottom))
                 imagen_recortada.save(ruta_destino, 'JPEG', quality=95)
@@ -449,7 +509,6 @@ class ExtractorWhatsApp:
         
         os.makedirs(carpeta_imagenes, exist_ok=True)
         
-        # Guardar imagen mediante screenshot
         if producto.get('imagen_elemento'):
             ruta_imagen = os.path.join(carpeta_imagenes, "imagen_1.jpg")
             
@@ -460,7 +519,6 @@ class ExtractorWhatsApp:
         else:
             print(f"    ⚠️  No se encontró imagen para este producto")
         
-        # Guardar datos.txt
         plantilla = f"""titulo={producto['titulo']}
 precio={producto['precio']}
 categoria=Electrónica e informática
