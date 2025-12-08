@@ -33,6 +33,7 @@ class ExtractorWhatsApp:
         
         self.driver = webdriver.Chrome(options=opciones)
         self.driver.maximize_window()
+        self.driver.set_script_timeout(15)  # ✅ Timeout para scripts async
         self.wait = WebDriverWait(self.driver, 60)
         
         print("✅ Navegador iniciado")
@@ -145,38 +146,61 @@ class ExtractorWhatsApp:
             return False
     
     def verificar_en_catalogo(self):
-        """Verifica que estamos en la vista del catálogo - VERSIÓN MEJORADA"""
+        """Verifica que estamos en el catálogo - SIMPLIFICADO"""
         try:
-            # Método 1: Buscar texto "Catálogo"
-            catalogo_texto = self.driver.find_elements(By.XPATH, "//span[contains(text(), 'Catálogo')]")
-            if len(catalogo_texto) > 0:
-                print("  [DEBUG] Catálogo detectado por texto")
-                return True
-            
-            # Método 2: Buscar lista de productos (role='list')
-            lista_productos = self.driver.find_elements(By.XPATH, "//div[@role='list']")
-            if len(lista_productos) > 0:
-                print("  [DEBUG] Catálogo detectado por lista de productos")
-                return True
-            
-            # Método 3: Buscar items de producto (role='listitem')
-            items_productos = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
-            if len(items_productos) > 0:
-                print(f"  [DEBUG] Catálogo detectado: {len(items_productos)} items visibles")
-                return True
-            
-            # Método 4: Verificar que NO estamos en vista de producto individual
-            # (si hay botón de volver pero no hay lista, estamos EN el producto)
-            imagen_producto = self.driver.find_elements(By.XPATH, "//img[@draggable='false']")
-            if len(imagen_producto) > 0 and len(items_productos) == 0:
-                print("  [DEBUG] En vista de producto individual (no catálogo)")
-                return False
-            
-            print("  [DEBUG] No se pudo confirmar catálogo")
+            items = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
+            return len(items) > 5  # Al menos 5 productos visibles
+        except:
             return False
+    
+    def ir_a_todos_articulos(self):
+        """Navega a la sección 'Todos los artículos' del catálogo"""
+        print("📦 Buscando sección 'Todos los artículos'...")
+        
+        try:
+            # Buscar el elemento "Todos los artículos" o "Ver todo"
+            todos_articulos = self.driver.find_element(By.XPATH, 
+                "//span[contains(text(), 'Todos los artículos') or contains(text(), 'todos los artículos')]"
+            )
+            
+            # Hacer scroll hasta el elemento
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", todos_articulos)
+            time.sleep(1)
+            
+            # Hacer clic
+            todos_articulos.click()
+            time.sleep(3)
+            
+            print("✅ Sección 'Todos los artículos' abierta")
+            return True
             
         except Exception as e:
-            print(f"  [DEBUG] Error verificando catálogo: {e}")
+            print(f"⚠️  No se encontró 'Todos los artículos': {e}")
+            print("   Continuando con el catálogo principal...")
+            return False
+    
+    def hacer_scroll_catalogo(self, veces=3):
+        """Hace scroll en el catálogo para cargar más productos"""
+        print(f"📜 Haciendo scroll para cargar más productos...")
+        
+        try:
+            # Buscar el contenedor de la lista
+            contenedor = self.driver.find_element(By.XPATH, "//div[@role='list']")
+            
+            for i in range(veces):
+                # Scroll hasta el final del contenedor
+                self.driver.execute_script(
+                    "arguments[0].scrollTop = arguments[0].scrollHeight;",
+                    contenedor
+                )
+                print(f"  → Scroll {i+1}/{veces}...")
+                time.sleep(2)  # Esperar a que carguen más productos
+            
+            print("✅ Scroll completado")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️  Error haciendo scroll: {e}")
             return False
     
     def contar_productos_catalogo(self):
@@ -222,185 +246,181 @@ class ExtractorWhatsApp:
             return False
     
     def extraer_productos(self, cantidad_maxima=5):
-        """Extrae los datos de los productos del catálogo - VERSIÓN ULTRA ROBUSTA V2"""
+        """Extrae productos - CON LOGS ULTRA DETALLADOS PARA DEBUG"""
         print(f"\n🎯 Iniciando extracción de hasta {cantidad_maxima} productos...\n")
         
         productos_extraidos = []
-        productos_procesados_indices = set()
+        indice_real = 0
         
-        for intento_producto in range(cantidad_maxima):
-            print(f"📦 Procesando producto {intento_producto + 1}/{cantidad_maxima}...")
+        for i in range(cantidad_maxima):
+            print(f"\n{'='*60}")
+            print(f"📦 PRODUCTO {i + 1}/{cantidad_maxima}")
+            print(f"{'='*60}")
             
-            intentos_click = 0
-            max_intentos = 3  # ✅ REDUCIDO de 5 a 3 para evitar loops eternos
-            producto_extraido_exitosamente = False
-            
-            while intentos_click < max_intentos and not producto_extraido_exitosamente:
-                try:
-                    # PASO 1: Verificar catálogo
-                    time.sleep(2.5)
-                    
-                    if not self.verificar_en_catalogo():
-                        print("  ⚠️  No estamos en el catálogo, volviendo...")
-                        if not self.volver_a_catalogo_forzado():
-                            print("  ❌ No se pudo volver al catálogo")
-                            intentos_click += 1
-                            continue
-                        time.sleep(3)
-                    
-                    # PASO 2: Hacer scroll
-                    self.hacer_scroll_lista_productos()
-                    time.sleep(1.5)
-                    
-                    # PASO 3: RE-BUSCAR productos
-                    items_productos = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
-                    
-                    print(f"  → Productos encontrados en DOM: {len(items_productos)}")
-                    
-                    if len(items_productos) == 0:
-                        print("  ⚠️  No se encontraron productos, reintentando...")
-                        intentos_click += 1
-                        time.sleep(3)
-                        continue
-                    
-                    if intento_producto >= len(items_productos):
-                        print(f"  ✓ Completado: {len(items_productos)} productos disponibles")
-                        return productos_extraidos
-                    
-                    # PASO 4: Scroll al producto
-                    producto_actual = items_productos[intento_producto]
-                    
-                    print(f"  → Haciendo scroll al producto {intento_producto + 1}...")
-                    self.driver.execute_script(
-                        "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
-                        producto_actual
-                    )
-                    time.sleep(2)
-                    
-                    # PASO 5: Click
-                    print(f"  → Haciendo clic en producto {intento_producto + 1}...")
-                    producto_actual.click()
-                    
-                    # PASO 6: Esperar carga completa
-                    time.sleep(5)
-                    self.esperar_producto_cargado()
-                    
-                    # PASO 7: Extraer datos
-                    producto = self.extraer_datos_producto()
-                    
-                    if producto:
-                        # ✅ Control de duplicados
-                        if intento_producto not in productos_procesados_indices:
-                            productos_extraidos.append(producto)
-                            productos_procesados_indices.add(intento_producto)
-                            print(f"✅ Producto {intento_producto + 1} extraído: {producto['titulo']}\n")
-                            producto_extraido_exitosamente = True  # ✅ MARCAR COMO EXITOSO
-                        else:
-                            print(f"  ⚠️  Producto {intento_producto + 1} ya fue extraído (duplicado)")
-                            # ✅ Si es duplicado, significa que NO volvimos correctamente
-                            # Incrementar intentos y forzar salida del while
-                            intentos_click += 1
-                            if intentos_click >= max_intentos:
-                                print(f"  ⚠️  Demasiados duplicados, forzando avance al siguiente producto")
-                                producto_extraido_exitosamente = True  # ✅ FORZAR SALIDA
-                    
-                    # PASO 8: Volver al catálogo
-                    print("  ← Volviendo al catálogo...")
-                    volver_exitoso = False
-                    
-                    # Intentar método principal
-                    if self.volver_a_catalogo():
-                        time.sleep(2)
-                        # Verificar items
-                        items_check = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
-                        if len(items_check) > 0:
-                            volver_exitoso = True
-                    
-                    # Si falla, usar método forzado
-                    if not volver_exitoso:
-                        print("  ⚠️  Método principal falló, usando alternativo...")
-                        if self.volver_a_catalogo_forzado():
-                            volver_exitoso = True
-                    
-                    time.sleep(3.5)
-                    
-                    # PASO 9: VERIFICAR que volvimos
-                    items_final = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
-                    
-                    if len(items_final) > 0:
-                        print(f"  ✓ Confirmado: {len(items_final)} productos en catálogo")
-                        break  # ✅ Salir del while de reintentos
-                    else:
-                        print("  ⚠️  No se confirmó vuelta, reintentando...")
-                        intentos_click += 1
-                        continue
-                    
-                except StaleElementReferenceException:
-                    intentos_click += 1
-                    print(f"  ⚠️  Elemento obsoleto, reintento {intentos_click}/{max_intentos}...")
-                    time.sleep(3)
-                    if intentos_click >= max_intentos:
-                        print(f"  ❌ Máximo de reintentos alcanzado")
-                        break
-                    continue
-                    
-                except Exception as e:
-                    print(f"  ⚠️  Error: {e}")
-                    intentos_click += 1
+            try:
+                time.sleep(2)
+                
+                # PASO 1: Buscar todos los items
+                items = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
+                print(f"[DEBUG] Total items en DOM: {len(items)}")
+                
+                # PASO 2: Analizar cada item detalladamente
+                productos_reales = []
+                for idx, item in enumerate(items):
                     try:
-                        self.volver_a_catalogo_forzado()
-                        time.sleep(3)
-                    except:
-                        pass
-                    
-                    if intentos_click >= max_intentos:
-                        print(f"  ❌ Máximo de reintentos alcanzado\n")
-                        break
+                        # Obtener info del item
+                        texto_item = item.text[:100] if item.text else "[sin texto]"
+                        tiene_video = len(item.find_elements(By.TAG_NAME, 'video')) > 0
+                        tiene_play = len(item.find_elements(By.XPATH, ".//*[contains(@data-icon, 'play')]")) > 0
+                        tiene_imagen = len(item.find_elements(By.TAG_NAME, 'img')) > 0
+                        
+                        # ✅ NUEVO: Detectar categorías
+                        es_categoria = 'Ver todo' in texto_item
+                        
+                        # ⚠️ NO filtrar por precio - WhatsApp no siempre lo muestra en lista
+                        
+                        print(f"[DEBUG] Item {idx}:")
+                        print(f"        texto='{texto_item[:50]}...'")
+                        print(f"        video={tiene_video} play={tiene_play} img={tiene_imagen}")
+                        print(f"        categoría={es_categoria}")
+                        
+                        # ✅ Solo agregar si NO es video y NO es categoría
+                        if not tiene_video and not tiene_play and not es_categoria:
+                            productos_reales.append(item)
+                            print(f"[DEBUG]   └─> ✅ PRODUCTO VÁLIDO (índice real: {len(productos_reales)-1})")
+                        else:
+                            razones = []
+                            if tiene_video or tiene_play:
+                                razones.append("video/multimedia")
+                            if es_categoria:
+                                razones.append("categoría")
+                            print(f"[DEBUG]   └─> ❌ DESCARTADO ({', '.join(razones)})")
+                    except Exception as e:
+                        print(f"[DEBUG] Item {idx}: Error - {e}")
+                
+                print(f"\n[RESUMEN] Productos válidos: {len(productos_reales)}/{len(items)}")
+                
+                if indice_real >= len(productos_reales):
+                    print(f"[INFO] Solo hay {len(productos_reales)} productos reales disponibles")
+                    break
+                
+                # PASO 3: Seleccionar producto
+                producto_item = productos_reales[indice_real]
+                print(f"\n[ACCIÓN] Seleccionando producto real #{indice_real + 1}")
+                print(f"[DEBUG] Texto del producto: '{producto_item.text[:100]}'")
+                
+                # PASO 4: Scroll y click
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center'});", 
+                    producto_item
+                )
+                time.sleep(1.5)
+                producto_item.click()
+                print(f"[ACCIÓN] ✅ Clic realizado")
+                
+                # PASO 5: Esperar carga
+                print(f"[ESPERA] Esperando 6 segundos para carga...")
+                time.sleep(6)
+                
+                # PASO 6: Verificar si es video
+                print(f"[VERIFICACIÓN] Comprobando si abrió un video...")
+                videos = self.driver.find_elements(By.TAG_NAME, 'video')
+                if len(videos) > 0:
+                    print(f"[ALERTA] ⚠️  Detectado {len(videos)} video(s), saltando...")
+                    self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                    time.sleep(2)
+                    indice_real += 1
                     continue
-            
-            # ✅ Si salimos del while sin éxito, continuar con el siguiente producto
-            if not producto_extraido_exitosamente and intento_producto not in productos_procesados_indices:
-                print(f"  ⚠️  No se pudo extraer producto {intento_producto + 1}, continuando...\n")
+                
+                print(f"[VERIFICACIÓN] ✅ No es video, es producto válido")
+                
+                # PASO 7: Verificar que estamos en vista de producto
+                print(f"[DEBUG] Verificando URL actual...")
+                url_actual = self.driver.current_url
+                print(f"[DEBUG] URL: {url_actual}")
+                
+                # Verificar título de la página
+                try:
+                    titulo_pagina = self.driver.title
+                    print(f"[DEBUG] Título página: {titulo_pagina}")
+                except:
+                    pass
+                
+                # PASO 8: Extraer datos
+                print(f"\n[EXTRACCIÓN] Iniciando extracción de datos...")
+                producto = self.extraer_datos_producto(numero_articulo=i+1)
+                
+                if producto:
+                    print(f"[EXTRACCIÓN] ✅ Datos extraídos:")
+                    print(f"  - Título: {producto['titulo']}")
+                    print(f"  - Precio: ${producto['precio']}")
+                    print(f"  - Descripción: {producto['descripcion'][:50]}...")
+                    print(f"  - Imagen guardada: {producto.get('imagen_guardada', False)}")
+                    
+                    # Guardar datos.txt
+                    carpeta_articulo = os.path.join(self.carpeta_principal, f"Articulo_{i+1}")
+                    archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
+                    os.makedirs(carpeta_articulo, exist_ok=True)
+                    
+                    plantilla = f"""titulo={producto['titulo']}
+precio={producto['precio']}
+categoria=Electrónica e informática
+estado=Nuevo
+descripcion={producto['descripcion']}
+disponibilidad=Publicar como disponible
+encuentro_publico=Si
+etiquetas=
+sku="""
+                    
+                    with open(archivo_datos, 'w', encoding='utf-8') as f:
+                        f.write(plantilla)
+                    
+                    productos_extraidos.append(producto)
+                    print(f"[GUARDADO] ✅ Producto guardado en Articulo_{i+1}\n")
+                
+                indice_real += 1
+                
+                # PASO 9: Volver
+                print(f"[ACCIÓN] Presionando ESC para volver...")
+                self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                time.sleep(5)
+                print(f"[ACCIÓN] ✅ Vuelto al catálogo\n")
+                
+            except Exception as e:
+                print(f"\n[ERROR] ❌ Excepción capturada: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                # Intentar volver
+                try:
+                    for _ in range(3):
+                        self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                        time.sleep(1)
+                except:
+                    pass
+                indice_real += 1
         
-        print(f"\n✅ Extracción completada: {len(productos_extraidos)} productos")
+        print(f"\n{'='*60}")
+        print(f"✅ EXTRACCIÓN COMPLETADA: {len(productos_extraidos)} productos")
+        print(f"{'='*60}\n")
         return productos_extraidos
     
     def volver_a_catalogo(self):
-        """Vuelve al catálogo de productos - VERSIÓN MEJORADA"""
+        """Vuelve al catálogo - MÉTODO SIMPLIFICADO"""
         try:
-            print("  ← Intentando volver al catálogo...")
+            # Método 1: ESC (más confiable que el botón)
+            self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+            print("  ← ESC presionado")
+            time.sleep(5)  # Espera larga para asegurar carga
             
-            # Buscar botones en el header
-            botones_header = self.driver.find_elements(By.XPATH, "//header//button")
+            # Verificar items
+            items = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
+            print(f"  → Items visibles: {len(items)}")
             
-            if len(botones_header) > 0:
-                print(f"  [DEBUG] Encontrados {len(botones_header)} botones en header")
-                
-                # Hacer clic en el primer botón (botón volver)
-                botones_header[0].click()
-                print("  [DEBUG] Clic en botón volver")
-                
-                # Esperar más tiempo para que la navegación se complete
-                time.sleep(4)  # Aumentado de 2.5 a 4 segundos
-                
-                # Verificar si volvimos
-                items = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
-                print(f"  [DEBUG] Items visibles después de volver: {len(items)}")
-                
-                if len(items) > 0:
-                    return True
-                else:
-                    print("  [DEBUG] No se ven items, esperando más...")
-                    time.sleep(2)
-                    items = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
-                    print(f"  [DEBUG] Items después de espera adicional: {len(items)}")
-                    return len(items) > 0
-            else:
-                print("  [DEBUG] No se encontraron botones en header")
-                return False
-                
+            return len(items) > 0
+            
         except Exception as e:
-            print(f"  ⚠️  Error al volver: {e}")
+            print(f"  ⚠️  Error: {e}")
             return False
     
     def volver_a_catalogo_forzado(self):
@@ -481,31 +501,131 @@ class ExtractorWhatsApp:
             print(f"  ❌ Error en volver forzado: {e}")
             return False
     
-    def extraer_datos_producto(self):
-        """Extrae los datos de un producto - VERSIÓN MEJORADA CON MÁS ESPERA"""
+    def extraer_datos_producto(self, numero_articulo=None):
+        """Extrae los datos de un producto - CON LOGS ULTRA DETALLADOS"""
         try:
+            print(f"[EXTRACCIÓN] Esperando 5 segundos...")
+            
             producto = {
                 'titulo': '',
                 'precio': '',
                 'descripcion': '',
-                'imagen_elemento': None
+                'imagen_guardada': False
             }
             
-            # Esperar más tiempo para asegurar carga completa
             time.sleep(5)
             
+            # SI SE PROPORCIONA numero_articulo, GUARDAR IMÁGENES INMEDIATAMENTE
+            if numero_articulo is not None:
+                print(f"[IMAGEN] Buscando imágenes para Articulo_{numero_articulo}...")
+                try:
+                    # Buscar TODAS las imágenes del producto
+                    selectores_imagen = [
+                        "//img[@class='_ak9n' and @draggable='false']",
+                        "//img[contains(@class, '_ak9n')]",
+                        "//img[@draggable='false']"
+                    ]
+                    
+                    imagenes_encontradas = []
+                    for idx, selector in enumerate(selectores_imagen):
+                        print(f"[IMAGEN] Probando selector {idx + 1}: {selector}")
+                        try:
+                            elementos = self.driver.find_elements(By.XPATH, selector)
+                            print(f"[IMAGEN]   └─> Encontrados: {len(elementos)} elementos")
+                            
+                            for elem in elementos:
+                                if elem.is_displayed():
+                                    src = elem.get_attribute('src')
+                                    
+                                    # ✅ PROTECCIÓN CONTRA VIDEOS - Verificar múltiples condiciones
+                                    es_video = False
+                                    
+                                    # Check 1: src contiene 'video'
+                                    if src and 'video' in src.lower():
+                                        es_video = True
+                                    
+                                    # Check 2: Elemento padre es <video>
+                                    try:
+                                        parent_tag = elem.find_element(By.XPATH, "..").tag_name
+                                        if parent_tag == 'video':
+                                            es_video = True
+                                    except:
+                                        pass
+                                    
+                                    # Check 3: Elemento tiene atributo de video
+                                    try:
+                                        if elem.get_attribute('poster') or elem.get_attribute('data-video'):
+                                            es_video = True
+                                    except:
+                                        pass
+                                    
+                                    # Check 4: Buscar <video> cercano (hermanos o hijos)
+                                    try:
+                                        videos_cercanos = elem.find_elements(By.XPATH, ".//video | ../video | ../../video")
+                                        if len(videos_cercanos) > 0:
+                                            es_video = True
+                                    except:
+                                        pass
+                                    
+                                    if es_video:
+                                        print(f"[IMAGEN]       └─> Saltado (es video o relacionado)")
+                                        continue
+                                    
+                                    # Evitar duplicados
+                                    if elem not in imagenes_encontradas:
+                                        imagenes_encontradas.append(elem)
+                                        print(f"[IMAGEN]       └─> Imagen {len(imagenes_encontradas)} agregada")
+                            
+                            if imagenes_encontradas:
+                                print(f"[IMAGEN] ✅ {len(imagenes_encontradas)} imagen(es) encontrada(s) con selector {idx + 1}")
+                                break
+                        except Exception as e:
+                            print(f"[IMAGEN]   └─> Error: {e}")
+                            continue
+                    
+                    if imagenes_encontradas:
+                        print(f"[IMAGEN] Guardando {len(imagenes_encontradas)} imagen(es)...")
+                        carpeta_imagenes = os.path.join(self.carpeta_principal, f"Articulo_{numero_articulo}", "imagenes")
+                        os.makedirs(carpeta_imagenes, exist_ok=True)
+                        
+                        # Guardar hasta 10 imágenes
+                        imagenes_guardadas = 0
+                        for idx, imagen_elem in enumerate(imagenes_encontradas[:10]):
+                            ruta_imagen = os.path.join(carpeta_imagenes, f"imagen_{idx + 1}.jpg")
+                            
+                            if self.descargar_imagen_blob(imagen_elem, ruta_imagen):
+                                imagenes_guardadas += 1
+                                print(f"[IMAGEN]   ✓ Imagen {idx + 1} guardada")
+                            else:
+                                print(f"[IMAGEN]   ✗ Error guardando imagen {idx + 1}")
+                        
+                        if imagenes_guardadas > 0:
+                            producto['imagen_guardada'] = True
+                            print(f"[IMAGEN] ✅ {imagenes_guardadas} imagen(es) guardada(s) correctamente")
+                        else:
+                            print(f"[IMAGEN] ❌ No se pudo guardar ninguna imagen")
+                    else:
+                        print(f"[IMAGEN] ⚠️  No se encontró ninguna imagen visible")
+                except Exception as e:
+                    print(f"[IMAGEN] ❌ Excepción: {e}")
+            
             # EXTRAER TÍTULO
+            print(f"\n[TÍTULO] Buscando título...")
             try:
                 titulos_posibles = self.driver.find_elements(By.XPATH, 
                     "//div[contains(@class, 'x1okw0bk')]//span[contains(@class, 'selectable-text')]"
                 )
                 
-                for titulo_elem in titulos_posibles[:15]:
+                print(f"[TÍTULO] Encontrados {len(titulos_posibles)} elementos candidatos")
+                
+                for idx, titulo_elem in enumerate(titulos_posibles[:15]):
                     try:
                         if not titulo_elem.is_displayed():
+                            print(f"[TÍTULO] Elemento {idx}: NO visible, saltando...")
                             continue
                         
                         texto = titulo_elem.text.strip()
+                        print(f"[TÍTULO] Elemento {idx}: '{texto[:50]}...'")
                         
                         # Filtros mejorados
                         if (texto and 
@@ -527,9 +647,12 @@ class ExtractorWhatsApp:
                             'Leer menos' not in texto):
                             
                             producto['titulo'] = texto
-                            print(f"  → Título encontrado: {texto}")
+                            print(f"[TÍTULO] ✅ SELECCIONADO: '{texto}'")
                             break
-                    except:
+                        else:
+                            print(f"[TÍTULO]   └─> Rechazado (no cumple filtros)")
+                    except Exception as e:
+                        print(f"[TÍTULO] Elemento {idx}: Error - {e}")
                         continue
                 
                 if not producto['titulo']:
@@ -561,22 +684,29 @@ class ExtractorWhatsApp:
                 producto['titulo'] = "Sin título"
             
             # EXTRAER PRECIO
+            print(f"\n[PRECIO] Buscando precio...")
             try:
                 precios = self.driver.find_elements(By.XPATH, 
                     "//*[starts-with(text(), '$') and string-length(text()) < 15]"
                 )
                 
-                for precio_elem in precios[:5]:
+                print(f"[PRECIO] Encontrados {len(precios)} elementos con '$'")
+                
+                for idx, precio_elem in enumerate(precios[:5]):
                     try:
                         if precio_elem.is_displayed():
                             precio_texto = precio_elem.text.strip()
+                            print(f"[PRECIO] Elemento {idx}: '{precio_texto}'")
                             precio_limpio = precio_texto.split()[0].replace('$', '').replace(',', '').strip()
                             
                             if precio_limpio and precio_limpio.replace('.', '').isdigit():
                                 producto['precio'] = precio_limpio
-                                print(f"  → Precio encontrado: ${precio_limpio}")
+                                print(f"[PRECIO] ✅ SELECCIONADO: ${precio_limpio}")
                                 break
-                    except:
+                            else:
+                                print(f"[PRECIO]   └─> Rechazado (no es número válido)")
+                    except Exception as e:
+                        print(f"[PRECIO] Elemento {idx}: Error - {e}")
                         continue
                 
                 if not producto['precio']:
@@ -595,95 +725,184 @@ class ExtractorWhatsApp:
             except:
                 pass
             
-            # EXTRAER DESCRIPCIÓN - MÉTODO MEJORADO
+            # EXPANDIR DESCRIPCIÓN si hay botón "Leer más"
+            print(f"\n[DESCRIPCIÓN] Verificando si hay botón 'Leer más'...")
             try:
-                detalles = []
-                textos_unicos = set()
-                
-                # Método 1: Buscar bullets
-                try:
-                    contenedor = self.driver.find_element(By.XPATH, "//div[contains(@class, 'x1okw0bk')]")
-                    elementos = contenedor.find_elements(By.XPATH, ".//*[self::span or self::div]")
-                    
-                    for elem in elementos[:30]:
-                        try:
-                            texto = elem.text.strip()
-                            
-                            if (texto and 
-                                5 < len(texto) < 200 and
-                                texto not in textos_unicos and
-                                '$' not in texto and
-                                texto != producto['titulo'] and
-                                'Catálogo' not in texto and
-                                'Detalles' not in texto):
-                                
-                                # Verificar si contiene información relevante
-                                if any(palabra in texto.lower() for palabra in ['marca', 'modelo', 'color', 'garantía', 'tamaño', 'peso', 'material']):
-                                    primera_linea = texto.split('\n')[0].strip()
-                                    if primera_linea and len(detalles) < 10:
-                                        detalles.append(primera_linea)
-                                        textos_unicos.add(primera_linea)
-                        except:
-                            continue
-                except:
-                    pass
-                
-                # Método 2: Si no hay detalles, tomar texto del contenedor
-                if not detalles:
-                    try:
-                        contenedor = self.driver.find_element(By.XPATH, "//div[contains(@class, 'x1okw0bk')]")
-                        texto_completo = contenedor.text
-                        
-                        # Dividir por líneas y filtrar
-                        lineas = texto_completo.split('\n')
-                        for linea in lineas[:20]:
-                            linea = linea.strip()
-                            if (linea and 
-                                10 < len(linea) < 200 and
-                                linea != producto['titulo'] and
-                                '$' not in linea and
-                                len(detalles) < 5):
-                                detalles.append(linea)
-                    except:
-                        pass
-                
-                if detalles:
-                    producto['descripcion'] = ' | '.join(detalles)
-                    print(f"  → Descripción: {len(detalles)} detalles capturados")
-                else:
-                    producto['descripcion'] = producto['titulo']  # Usar título como fallback
-                    
-            except Exception as e:
-                print(f"  ⚠️  Error extrayendo descripción: {e}")
-                producto['descripcion'] = producto['titulo']
-            
-            # CAPTURAR IMAGEN - MÉTODO MEJORADO
-            try:
-                time.sleep(2.5)
-                
-                # Intentar múltiples selectores
-                selectores_imagen = [
-                    "//img[@class='_ak9n' and @draggable='false']",
-                    "//img[contains(@class, '_ak9n')]",
-                    "//img[@draggable='false']"
+                # Intentar múltiples selectores para encontrar "Leer más"
+                selectores_leer_mas = [
+                    # Selector ESPECÍFICO para el span con role="button"
+                    "//span[@role='button' and contains(text(), 'Leer más')]",
+                    "//span[@role='button' and contains(text(), 'leer más')]",
+                    "//span[@class='x1ph7ams' and @role='button']",
+                    # Selectores genéricos
+                    "//span[contains(text(), 'Leer más')]",
+                    "//span[contains(text(), 'leer más')]",
+                    "//*[contains(text(), 'Leer más')]",
+                    "//*[contains(text(), 'leer más')]",
+                    "//div[contains(text(), 'Leer más')]",
+                    "//a[contains(text(), 'Leer más')]"
                 ]
                 
-                imagen = None
-                for selector in selectores_imagen:
+                leer_mas_encontrado = False
+                
+                for idx, selector in enumerate(selectores_leer_mas):
                     try:
-                        imagen = self.driver.find_element(By.XPATH, selector)
-                        if imagen and imagen.is_displayed():
-                            producto['imagen_elemento'] = imagen
-                            print("  → Imagen encontrada")
-                            break
-                    except:
+                        print(f"[DESCRIPCIÓN]   Probando selector {idx + 1}/{len(selectores_leer_mas)}...")
+                        elementos = self.driver.find_elements(By.XPATH, selector)
+                        
+                        if elementos:
+                            print(f"[DESCRIPCIÓN]   → Encontrados {len(elementos)} elementos")
+                            
+                            for elem in elementos:
+                                try:
+                                    # Verificar que el texto contenga "Leer más" (con o sin espacio)
+                                    texto = elem.text.strip()
+                                    if 'leer más' not in texto.lower():
+                                        continue
+                                    
+                                    if elem.is_displayed():
+                                        # Hacer scroll hasta el elemento
+                                        self.driver.execute_script(
+                                            "arguments[0].scrollIntoView({block: 'center'});", 
+                                            elem
+                                        )
+                                        time.sleep(0.5)
+                                        
+                                        print(f"[DESCRIPCIÓN]   ✓ Encontrado '{texto}', haciendo clic...")
+                                        
+                                        # Intentar clic directo primero
+                                        try:
+                                            elem.click()
+                                        except:
+                                            # Si falla, usar JavaScript
+                                            print(f"[DESCRIPCIÓN]   → Usando JavaScript para clic...")
+                                            self.driver.execute_script("arguments[0].click();", elem)
+                                        
+                                        time.sleep(2.5)  # Esperar a que se expanda
+                                        print(f"[DESCRIPCIÓN]   ✓ Descripción expandida")
+                                        leer_mas_encontrado = True
+                                        break
+                                except Exception as e:
+                                    print(f"[DESCRIPCIÓN]   ✗ Error en elemento: {e}")
+                                    continue
+                            
+                            if leer_mas_encontrado:
+                                break
+                    except Exception as e:
                         continue
                 
-                if not producto['imagen_elemento']:
-                    print("  ⚠️  No se encontró imagen")
+                if not leer_mas_encontrado:
+                    print(f"[DESCRIPCIÓN]   ℹ️  No se encontró botón 'Leer más' (puede estar expandido)")
                     
             except Exception as e:
-                print(f"  ⚠️  Error buscando imagen: {e}")
+                print(f"[DESCRIPCIÓN]   ℹ️  No hay botón 'Leer más'")
+            
+            # Esperar un poco más después de expandir
+            time.sleep(1)
+            
+            # EXTRAER DESCRIPCIÓN - MÉTODO MULTI-ESTRATEGIA
+            print(f"[DESCRIPCIÓN] Extrayendo descripción completa...")
+            try:
+                detalles = []
+                
+                # MÉTODO 1: Buscar todos los elementos con ○
+                try:
+                    print(f"[DESCRIPCIÓN] Método 1: Buscando bullets con ○")
+                    elementos_bullets = self.driver.find_elements(By.XPATH, 
+                        "//*[contains(text(), '○')]"
+                    )
+                    
+                    print(f"[DESCRIPCIÓN]   → Encontrados {len(elementos_bullets)} elementos")
+                    
+                    for elem in elementos_bullets[:30]:
+                        try:
+                            if elem.is_displayed():
+                                texto_completo = elem.text.strip()
+                                
+                                # Dividir por ○ para obtener cada detalle
+                                partes = texto_completo.split('○')
+                                
+                                for parte in partes:
+                                    linea = parte.strip()
+                                    
+                                    # Filtrar líneas relevantes
+                                    if linea and len(linea) > 5 and len(linea) < 200:
+                                        # Verificar palabras clave
+                                        if any(palabra in linea.lower() for palabra in 
+                                               ['marca:', 'modelo:', 'color:', 'material:', 'ancho:', 'largo:', 
+                                                'peso:', 'tamaño:', 'garantía:', 'conectividad:', 'bluetooth:',
+                                                'cable:', 'batería:', 'teclas:', 'dpi:', 'switch:', 'modos:',
+                                                'interfaz:', 'incluye', 'tipo:', 'estándar:', 'teclado:',
+                                                'velocidad:', 'iluminación:', 'retroiluminado:', 'ideal:']):
+                                            
+                                            # Validar que no sea el título ni precio
+                                            if (linea not in detalles and 
+                                                linea != producto['titulo'] and 
+                                                '$' not in linea and
+                                                'Trabajo' not in linea and
+                                                'John' not in linea):
+                                                
+                                                detalles.append(linea)
+                                                print(f"[DESCRIPCIÓN]     Detalle {len(detalles)}: '{linea[:70]}...'")
+                                                
+                                                if len(detalles) >= 15:
+                                                    break
+                        except:
+                            continue
+                    
+                    if detalles:
+                        print(f"[DESCRIPCIÓN] Método 1 exitoso: {len(detalles)} detalles")
+                
+                except Exception as e:
+                    print(f"[DESCRIPCIÓN] Método 1 falló: {e}")
+                
+                # MÉTODO 2: Si no hay detalles, buscar por span[dir='auto']
+                if not detalles:
+                    try:
+                        print(f"[DESCRIPCIÓN] Método 2: Buscando spans con dir='auto'")
+                        spans = self.driver.find_elements(By.XPATH, "//span[@dir='auto']")
+                        
+                        print(f"[DESCRIPCIÓN]   → Encontrados {len(spans)} elementos")
+                        
+                        for span in spans[:50]:
+                            try:
+                                texto = span.text.strip()
+                                
+                                if texto and len(texto) > 5 and len(texto) < 200:
+                                    if any(palabra in texto.lower() for palabra in 
+                                           ['marca:', 'modelo:', 'color:', 'material:', 'ancho:', 'largo:', 
+                                            'conectividad:', 'bluetooth:', 'teclas:', 'ideal:']):
+                                        
+                                        if (texto not in detalles and 
+                                            texto != producto['titulo'] and 
+                                            '$' not in texto):
+                                            
+                                            detalles.append(texto)
+                                            print(f"[DESCRIPCIÓN]     Detalle {len(detalles)}: '{texto[:70]}...'")
+                                            
+                                            if len(detalles) >= 15:
+                                                break
+                            except:
+                                continue
+                        
+                        if detalles:
+                            print(f"[DESCRIPCIÓN] Método 2 exitoso: {len(detalles)} detalles")
+                    
+                    except Exception as e:
+                        print(f"[DESCRIPCIÓN] Método 2 falló: {e}")
+                
+                # Si encontramos detalles, usarlos
+                if detalles:
+                    producto['descripcion'] = ' | '.join(detalles)
+                    print(f"[DESCRIPCIÓN] ✅ CAPTURADOS: {len(detalles)} detalles")
+                else:
+                    # Fallback: usar título
+                    producto['descripcion'] = producto['titulo']
+                    print(f"[DESCRIPCIÓN] ⚠️  Sin detalles, usando título")
+                    
+            except Exception as e:
+                print(f"[DESCRIPCIÓN] ❌ Error: {e}")
+                producto['descripcion'] = producto['titulo']
             
             return producto
             
@@ -691,8 +910,76 @@ class ExtractorWhatsApp:
             print(f"❌ Error extrayendo datos del producto: {e}")
             return None
     
+    def descargar_imagen_blob(self, elemento_imagen, ruta_destino):
+        """Descarga imagen desde blob URL usando JavaScript"""
+        try:
+            print(f"  📸 Descargando imagen...")
+            
+            # Obtener el src
+            src = elemento_imagen.get_attribute('src')
+            
+            if src.startswith('http'):
+                # URL normal - descargar con requests
+                import requests
+                response = requests.get(src, timeout=10)
+                with open(ruta_destino, 'wb') as f:
+                    f.write(response.content)
+                print("    ✓ Imagen descargada (HTTP)")
+                return True
+                
+            elif src.startswith('blob:'):
+                # URL blob - convertir con JavaScript
+                try:
+                    # Intentar método asíncrono con timeout
+                    base64_data = self.driver.execute_async_script("""
+                        const src = arguments[0];
+                        const callback = arguments[1];
+                        
+                        fetch(src)
+                            .then(r => r.blob())
+                            .then(blob => {
+                                const reader = new FileReader();
+                                reader.onload = () => callback(reader.result.split(',')[1]);
+                                reader.readAsDataURL(blob);
+                            })
+                            .catch(err => callback(null));
+                        
+                        // Timeout de 10 segundos
+                        setTimeout(() => callback(null), 10000);
+                    """, src)
+                    
+                    if base64_data:
+                        import base64
+                        with open(ruta_destino, 'wb') as f:
+                            f.write(base64.b64decode(base64_data))
+                        print("    ✓ Imagen descargada (blob)")
+                        return True
+                    else:
+                        print("    ⚠️  Blob timeout, usando screenshot...")
+                        return self.capturar_screenshot_imagen(elemento_imagen, ruta_destino)
+                        
+                except Exception as e:
+                    print(f"    ⚠️  Error con blob: {e}, usando screenshot...")
+                    return self.capturar_screenshot_imagen(elemento_imagen, ruta_destino)
+            
+            else:
+                # base64 inline - guardar directamente
+                if src.startswith('data:image'):
+                    import base64
+                    base64_data = src.split(',')[1]
+                    with open(ruta_destino, 'wb') as f:
+                        f.write(base64.b64decode(base64_data))
+                    print("    ✓ Imagen guardada (base64)")
+                    return True
+                    
+            return False
+            
+        except Exception as e:
+            print(f"    ⚠️  Error descargando: {e}")
+            # Fallback a screenshot
+            return self.capturar_screenshot_imagen(elemento_imagen, ruta_destino)
     def capturar_screenshot_imagen(self, elemento, ruta_destino):
-        """Captura screenshot optimizado de la imagen"""
+        """Captura screenshot optimizado de la imagen - MÉTODO FALLBACK"""
         try:
             print(f"  📸 Capturando imagen...")
             
@@ -728,22 +1015,11 @@ class ExtractorWhatsApp:
             return False
     
     def guardar_producto(self, producto, numero_articulo):
-        """Guarda un producto en la estructura de carpetas"""
+        """Guarda los datos del producto (la imagen ya fue guardada)"""
         carpeta_articulo = os.path.join(self.carpeta_principal, f"Articulo_{numero_articulo}")
-        carpeta_imagenes = os.path.join(carpeta_articulo, "imagenes")
         archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
         
-        os.makedirs(carpeta_imagenes, exist_ok=True)
-        
-        if producto.get('imagen_elemento'):
-            ruta_imagen = os.path.join(carpeta_imagenes, "imagen_1.jpg")
-            
-            if self.capturar_screenshot_imagen(producto['imagen_elemento'], ruta_imagen):
-                print(f"    ✓ Imagen guardada correctamente")
-            else:
-                print(f"    ✗ No se pudo guardar la imagen")
-        else:
-            print(f"    ⚠️  No se encontró imagen para este producto")
+        os.makedirs(carpeta_articulo, exist_ok=True)
         
         plantilla = f"""titulo={producto['titulo']}
 precio={producto['precio']}
@@ -781,13 +1057,15 @@ sku="""
             if not self.ir_a_catalogo():
                 return False
             
+            # ✅ NUEVO: Intentar ir a "Todos los artículos"
+            self.ir_a_todos_articulos()
+            
+            # ✅ NUEVO: Hacer scroll para cargar más productos
+            self.hacer_scroll_catalogo(veces=5)
+            
             total_productos = self.contar_productos_catalogo()
             
             productos = self.extraer_productos(cantidad_productos)
-            
-            print("\n💾 Guardando productos en carpetas...")
-            for i, producto in enumerate(productos, 1):
-                self.guardar_producto(producto, i)
             
             print("\n" + "="*60)
             print(f"✅ EXTRACCIÓN COMPLETADA - {len(productos)} productos guardados")

@@ -1,8 +1,8 @@
-titulo=Sin título
+titulo=EYooso Z - 11 RGB / 60 %
 precio=43.00
 categoria=Electrónica e informática
 estado=Nuevo
-descripcion=Sin título
+descripcion=Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo | Modos de Iluminación: 20 Modos | Incluye la Velocidad de efecto del Modo | Incluye Intensidad de Brillo | Tipo de interfaz: USB | Estándar del teclado: 61 teclas de Inyección de disparo doble. | Teclado retroiluminado: RGB | Material: PBT
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=
