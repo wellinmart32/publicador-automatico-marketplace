@@ -23,7 +23,7 @@ class PublicadorMarketplace:
         opciones = webdriver.ChromeOptions()
         
         # Usar perfil dedicado para el bot (se creará automáticamente)
-        ruta_perfil_bot = os.path.join(os.getcwd(), "perfil_bot_marketplace")
+        ruta_perfil_bot = os.path.join(os.getcwd(), "perfiles", "marketplace_bot")
         opciones.add_argument(f"--user-data-dir={ruta_perfil_bot}")
         
         # Opciones adicionales

@@ -1,8 +1,8 @@
-titulo=Ejemplo Producto
-precio=100
+titulo=Sin título
+precio=43.00
 categoria=Electrónica e informática
 estado=Nuevo
-descripcion=Descripción detallada del producto aquí
+descripcion=Sin descripción
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

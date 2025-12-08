@@ -1,8 +1,8 @@
 # Ignorar imágenes de artículos
 ArticulosMarketplace/*/imagenes/*
 
-# Ignorar perfil del bot
-perfil_bot_marketplace/
+# Ignorar carpeta de perfiles completa
+perfiles/
 
 # Ignorar drivers
 drivers/

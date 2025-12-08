@@ -1,5 +1,5 @@
 import time
-from gestor_archivos import (
+from compartido.gestor_archivos import (
     crear_estructura_carpetas,
     contar_articulos,
     obtener_numero_articulo,
@@ -7,7 +7,7 @@ from gestor_archivos import (
     obtener_imagenes_articulo,
     guardar_numero_config
 )
-from publicador_marketplace import PublicadorMarketplace
+from publicadores.publicador_marketplace import PublicadorMarketplace
 
 
 def main():

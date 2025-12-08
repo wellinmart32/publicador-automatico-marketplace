@@ -2,11 +2,11 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoSuchElementException
+from PIL import Image
+from io import BytesIO
 import time
 import os
-import requests
 
 
 class ExtractorWhatsApp:
@@ -21,28 +21,24 @@ class ExtractorWhatsApp:
         """Inicia Chrome y abre WhatsApp Web"""
         print("🌐 Iniciando Chrome...")
         
-        # Configurar opciones para Chrome
         opciones = webdriver.ChromeOptions()
         
-        # Usar perfil dedicado para WhatsApp
-        ruta_perfil = os.path.join(os.getcwd(), "perfil_whatsapp_extractor")
+        ruta_perfil = os.path.join(os.getcwd(), "perfiles", "whatsapp_extractor")
         opciones.add_argument(f"--user-data-dir={ruta_perfil}")
-        
-        # Opciones adicionales
         opciones.add_argument("--disable-blink-features=AutomationControlled")
         opciones.add_experimental_option("excludeSwitches", ["enable-automation"])
         opciones.add_experimental_option('useAutomationExtension', False)
+        opciones.add_argument("--start-maximized")
         
-        # Iniciar driver
-        servicio = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=servicio, options=opciones)
-        self.wait = WebDriverWait(self.driver, 30)
+        self.driver = webdriver.Chrome(options=opciones)
+        self.driver.maximize_window()
+        self.wait = WebDriverWait(self.driver, 60)
         
         print("✅ Navegador iniciado")
         
-        # Ir a WhatsApp Web
         print("📱 Abriendo WhatsApp Web...")
         self.driver.get("https://web.whatsapp.com")
+        time.sleep(3)
         
         print("\n⏳ Esperando a que escanees el código QR...")
         print("   (Si ya estás logueado, esto se saltará automáticamente)\n")
@@ -50,15 +46,17 @@ class ExtractorWhatsApp:
     def esperar_whatsapp_cargado(self):
         """Espera a que WhatsApp Web esté completamente cargado"""
         try:
-            # Esperar a que aparezca la barra de búsqueda (señal de que cargó)
+            print("⏳ Esperando que WhatsApp Web cargue completamente...")
+            
             self.wait.until(
                 EC.presence_of_element_located((By.XPATH, "//div[@contenteditable='true'][@data-tab='3']"))
             )
             print("✅ WhatsApp Web cargado correctamente")
-            time.sleep(2)
+            
+            time.sleep(5)
             return True
-        except:
-            print("❌ Error: WhatsApp Web no cargó correctamente")
+        except Exception as e:
+            print(f"❌ Error: WhatsApp Web no cargó correctamente: {e}")
             return False
     
     def buscar_contacto(self, nombre_contacto):
@@ -66,22 +64,48 @@ class ExtractorWhatsApp:
         print(f"🔍 Buscando contacto: {nombre_contacto}")
         
         try:
-            # Buscar el campo de búsqueda
+            print("  → Localizando campo de búsqueda...")
             campo_busqueda = self.driver.find_element(By.XPATH, "//div[@contenteditable='true'][@data-tab='3']")
             campo_busqueda.click()
+            time.sleep(1)
+            
+            campo_busqueda.clear()
             time.sleep(0.5)
             
-            # Escribir el nombre del contacto
+            print(f"  → Escribiendo '{nombre_contacto}'...")
             campo_busqueda.send_keys(nombre_contacto)
-            time.sleep(2)
             
-            # Hacer clic en el primer resultado
-            primer_resultado = self.driver.find_element(By.XPATH, "//div[@role='listitem'][1]")
-            primer_resultado.click()
-            time.sleep(1.5)
+            print("  → Esperando resultados de búsqueda...")
+            time.sleep(5)
             
-            print(f"✅ Contacto '{nombre_contacto}' abierto")
-            return True
+            try:
+                print(f"  → Buscando '{nombre_contacto}' en los resultados...")
+                
+                contacto = WebDriverWait(self.driver, 20).until(
+                    EC.element_to_be_clickable((By.XPATH, f"//span[@title='{nombre_contacto}']"))
+                )
+                
+                print("  → Contacto encontrado, haciendo clic...")
+                contacto.click()
+                time.sleep(3)
+                
+                print(f"✅ Contacto '{nombre_contacto}' abierto")
+                return True
+                
+            except:
+                print("  → Intentando método alternativo...")
+                try:
+                    contacto_alt = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, f"//span[contains(text(), '{nombre_contacto}')]"))
+                    )
+                    contacto_alt.click()
+                    time.sleep(3)
+                    
+                    print(f"✅ Contacto '{nombre_contacto}' abierto")
+                    return True
+                except:
+                    print("❌ No se pudo hacer clic en el contacto.")
+                    return False
             
         except Exception as e:
             print(f"❌ Error buscando contacto: {e}")
@@ -92,7 +116,6 @@ class ExtractorWhatsApp:
         print("📋 Abriendo información del contacto...")
         
         try:
-            # Buscar y hacer clic en el encabezado del chat para abrir info
             encabezado = self.driver.find_element(By.XPATH, "//header//div[@role='button']")
             encabezado.click()
             time.sleep(1.5)
@@ -109,7 +132,6 @@ class ExtractorWhatsApp:
         print("📦 Buscando catálogo de productos...")
         
         try:
-            # Buscar el elemento "Productos" y hacer clic
             elemento_productos = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Productos')]")
             elemento_productos.click()
             time.sleep(2)
@@ -138,83 +160,240 @@ class ExtractorWhatsApp:
         
         productos_extraidos = []
         
-        try:
-            # Obtener todos los elementos de productos
-            items_productos = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
+        for intento_producto in range(cantidad_maxima):
+            print(f"📦 Procesando producto {intento_producto + 1}/{cantidad_maxima}...")
             
-            for i, item in enumerate(items_productos[:cantidad_maxima], 1):
-                print(f"📦 Procesando producto {i}/{min(cantidad_maxima, len(items_productos))}...")
+            try:
+                time.sleep(2.5)
                 
+                items_productos = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
+                
+                if intento_producto >= len(items_productos):
+                    print(f"  ⚠️  Solo hay {len(items_productos)} productos en esta vista")
+                    break
+                
+                # Scroll y clic
+                producto_actual = items_productos[intento_producto]
+                self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", producto_actual)
+                time.sleep(1.5)
+                
+                producto_actual.click()
+                time.sleep(4)  # Esperar más tiempo a que cargue completamente
+                
+                # Extraer datos
+                producto = self.extraer_datos_producto()
+                
+                if producto:
+                    productos_extraidos.append(producto)
+                    print(f"✅ Producto extraído: {producto['titulo']}\n")
+                
+                # Volver
+                self.volver_a_catalogo()
+                time.sleep(3.5)  # Esperar más antes del siguiente
+                
+            except StaleElementReferenceException:
+                print(f"  ⚠️  Elemento obsoleto, continuando...\n")
+                time.sleep(2)
+                continue
+                
+            except Exception as e:
+                print(f"  ⚠️  Error procesando producto {intento_producto + 1}: {e}\n")
                 try:
-                    # Hacer clic en el producto
-                    item.click()
-                    time.sleep(1.5)
-                    
-                    # Extraer datos del producto
-                    producto = self.extraer_datos_producto()
-                    
-                    if producto:
-                        productos_extraidos.append(producto)
-                        print(f"✅ Producto extraído: {producto['titulo']}\n")
-                    
-                    # Volver al catálogo
-                    boton_atras = self.driver.find_element(By.XPATH, "//span[@data-icon='back']")
-                    boton_atras.click()
-                    time.sleep(1)
-                    
-                except Exception as e:
-                    print(f"⚠️  Error procesando producto {i}: {e}\n")
-                    continue
+                    self.volver_a_catalogo()
+                    time.sleep(2)
+                except:
+                    pass
+                continue
+        
+        print(f"\n✅ Extracción completada: {len(productos_extraidos)} productos")
+        return productos_extraidos
+    
+    def volver_a_catalogo(self):
+        """Vuelve al catálogo de productos"""
+        try:
+            print("  ← Volviendo al catálogo...")
             
-            print(f"\n✅ Extracción completada: {len(productos_extraidos)} productos")
-            return productos_extraidos
+            # Método 1: Buscar el primer botón del header
+            botones_header = self.driver.find_elements(By.XPATH, "//header//button")
             
+            if botones_header:
+                botones_header[0].click()
+                time.sleep(2)
+                return True
+            else:
+                # Método 2: ESC
+                from selenium.webdriver.common.keys import Keys
+                self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                time.sleep(2)
+                return True
+                
         except Exception as e:
-            print(f"❌ Error en extracción de productos: {e}")
-            return productos_extraidos
+            print(f"  ⚠️  Error al volver: {e}")
+            return False
     
     def extraer_datos_producto(self):
-        """Extrae los datos de un producto individual"""
+        """Extrae los datos de un producto - VERSIÓN MEJORADA"""
         try:
             producto = {
                 'titulo': '',
                 'precio': '',
                 'descripcion': '',
-                'imagenes': []
+                'imagen_elemento': None
             }
             
-            # Extraer título
+            # Esperar a que cargue completamente
+            time.sleep(3)
+            
+            # EXTRAER TÍTULO - Solo del área principal de detalles
             try:
-                titulo = self.driver.find_element(By.XPATH, "//div[@role='heading']").text
-                producto['titulo'] = titulo
-            except:
+                # Buscar específicamente en el contenedor de detalles del producto
+                # Evitar el nombre del contacto
+                titulos_posibles = self.driver.find_elements(By.XPATH, 
+                    "//div[contains(@class, 'x1okw0bk')]//span[contains(@class, 'selectable-text')]"
+                )
+                
+                for titulo_elem in titulos_posibles[:8]:
+                    try:
+                        if not titulo_elem.is_displayed():
+                            continue
+                        
+                        texto = titulo_elem.text.strip()
+                        
+                        # Validaciones estrictas
+                        if (texto and 
+                            8 < len(texto) < 70 and 
+                            '$' not in texto and 
+                            '○' not in texto and 
+                            '◯' not in texto and
+                            'Marca:' not in texto and
+                            'Modelo:' not in texto and
+                            'Color:' not in texto and
+                            'Trabajo' not in texto and  # Evitar nombre del contacto
+                            'John' not in texto and
+                            'Detalles' not in texto and
+                            'Catálogo' not in texto and
+                            'TECLADOS' not in texto and
+                            'MOUSES' not in texto):
+                            
+                            producto['titulo'] = texto
+                            print(f"  → Título encontrado: {texto}")
+                            break
+                    except:
+                        continue
+                
+                if not producto['titulo']:
+                    producto['titulo'] = "Sin título"
+                    
+            except Exception as e:
+                print(f"  ⚠️  Error extrayendo título")
                 producto['titulo'] = "Sin título"
             
-            # Extraer precio
+            # EXTRAER PRECIO
             try:
-                precio = self.driver.find_element(By.XPATH, "//span[contains(text(), '$')]").text
-                # Limpiar el precio (quitar $ y espacios)
-                precio_limpio = precio.replace('$', '').replace(',', '').strip()
-                producto['precio'] = precio_limpio
+                precios = self.driver.find_elements(By.XPATH, 
+                    "//*[starts-with(text(), '$') and string-length(text()) < 15]"
+                )
+                
+                for precio_elem in precios[:3]:
+                    try:
+                        if precio_elem.is_displayed():
+                            precio_texto = precio_elem.text.strip()
+                            # Tomar solo el primer precio (puede haber precio tachado)
+                            precio_limpio = precio_texto.split()[0].replace('$', '').replace(',', '').strip()
+                            
+                            if precio_limpio and precio_limpio.replace('.', '').isdigit():
+                                producto['precio'] = precio_limpio
+                                print(f"  → Precio encontrado: ${precio_limpio}")
+                                break
+                    except:
+                        continue
+                
+                if not producto['precio']:
+                    producto['precio'] = "0"
+                    
             except:
                 producto['precio'] = "0"
             
-            # Extraer descripción
+            # HACER CLIC EN "Leer más"
             try:
-                descripcion = self.driver.find_element(By.XPATH, "//div[@class='_ak72 _ak73']").text
-                producto['descripcion'] = descripcion
-            except:
-                producto['descripcion'] = "Sin descripción"
-            
-            # Extraer URLs de imágenes
-            try:
-                imagenes = self.driver.find_elements(By.XPATH, "//img[@draggable='false']")
-                for img in imagenes[:10]:  # Máximo 10 imágenes
-                    url = img.get_attribute('src')
-                    if url and url.startswith('http'):
-                        producto['imagenes'].append(url)
+                leer_mas = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Leer más')]")
+                if leer_mas.is_displayed():
+                    leer_mas.click()
+                    time.sleep(2)
+                    print("  → Expandiendo descripción...")
             except:
                 pass
+            
+            # EXTRAER DESCRIPCIÓN - Solo elementos visibles en el área de detalles
+            try:
+                detalles = []
+                
+                # Buscar SOLO en el área de detalles visible
+                contenedor_detalles = self.driver.find_element(By.XPATH, 
+                    "//div[contains(@class, 'x1okw0bk')]"
+                )
+                
+                elementos_detalles = contenedor_detalles.find_elements(By.XPATH, 
+                    ".//*[contains(text(), '○') or contains(text(), '◯') or contains(text(), 'Marca:')]"
+                )
+                
+                textos_unicos = set()
+                
+                for detalle_elem in elementos_detalles[:15]:
+                    try:
+                        # Verificar que el elemento esté en el viewport
+                        location = detalle_elem.location
+                        size = detalle_elem.size
+                        
+                        # Solo elementos que realmente están visibles
+                        if location['y'] > 0 and size['height'] > 0:
+                            texto = detalle_elem.text.strip()
+                            
+                            if texto and 5 < len(texto) < 200:
+                                # Tomar solo la primera línea si hay múltiples
+                                primera_linea = texto.split('\n')[0].strip()
+                                
+                                if (primera_linea and 
+                                    primera_linea not in textos_unicos and
+                                    len(detalles) < 10):
+                                    
+                                    detalles.append(primera_linea)
+                                    textos_unicos.add(primera_linea)
+                        
+                        if len(detalles) >= 10:
+                            break
+                            
+                    except:
+                        continue
+                
+                if detalles:
+                    producto['descripcion'] = ' | '.join(detalles)
+                    print(f"  → Descripción: {len(detalles)} detalles capturados")
+                else:
+                    producto['descripcion'] = "Sin descripción"
+                    
+            except Exception as e:
+                print(f"  ⚠️  Error extrayendo descripción")
+                producto['descripcion'] = "Sin descripción"
+            
+            # CAPTURAR ELEMENTO DE IMAGEN para screenshot
+            try:
+                # Esperar a que la imagen termine de cargar
+                time.sleep(2)
+                
+                # Buscar la imagen principal
+                imagen = self.driver.find_element(By.XPATH, 
+                    "//img[@class='_ak9n' or (contains(@class, '_ak9n') and @draggable='false')]"
+                )
+                
+                if imagen and imagen.is_displayed():
+                    producto['imagen_elemento'] = imagen
+                    print("  → Imagen encontrada")
+                else:
+                    print("  ⚠️  Imagen no visible")
+                    
+            except Exception as e:
+                print(f"  ⚠️  No se encontró imagen")
             
             return producto
             
@@ -222,17 +401,45 @@ class ExtractorWhatsApp:
             print(f"❌ Error extrayendo datos del producto: {e}")
             return None
     
-    def descargar_imagen(self, url, ruta_destino):
-        """Descarga una imagen desde una URL"""
+    def capturar_screenshot_imagen(self, elemento, ruta_destino):
+        """Captura screenshot optimizado de la imagen del producto"""
         try:
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                with open(ruta_destino, 'wb') as f:
-                    f.write(response.content)
+            print(f"  📸 Capturando imagen...")
+            
+            # Hacer scroll al elemento y esperar
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({behavior: 'auto', block: 'center'});", 
+                elemento
+            )
+            time.sleep(1.5)
+            
+            # Obtener posición y tamaño
+            location = elemento.location
+            size = elemento.size
+            
+            # Tomar screenshot completo de la ventana
+            screenshot = self.driver.get_screenshot_as_png()
+            img = Image.open(BytesIO(screenshot))
+            
+            # Calcular coordenadas con margen generoso
+            margen = 50
+            left = max(0, location['x'] - margen)
+            top = max(0, location['y'] - margen)
+            right = min(img.width, location['x'] + size['width'] + margen)
+            bottom = min(img.height, location['y'] + size['height'] + margen)
+            
+            # Verificar que las coordenadas sean válidas
+            if right > left and bottom > top:
+                imagen_recortada = img.crop((left, top, right, bottom))
+                imagen_recortada.save(ruta_destino, 'JPEG', quality=95)
                 return True
-        except:
-            pass
-        return False
+            else:
+                print(f"      Coordenadas inválidas")
+                return False
+                
+        except Exception as e:
+            print(f"      Error capturando: {e}")
+            return False
     
     def guardar_producto(self, producto, numero_articulo):
         """Guarda un producto en la estructura de carpetas"""
@@ -240,19 +447,18 @@ class ExtractorWhatsApp:
         carpeta_imagenes = os.path.join(carpeta_articulo, "imagenes")
         archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
         
-        # Asegurar que existen las carpetas
         os.makedirs(carpeta_imagenes, exist_ok=True)
         
-        # Guardar imágenes
-        print(f"  📸 Descargando {len(producto['imagenes'])} imágenes...")
-        for idx, url_imagen in enumerate(producto['imagenes'], 1):
-            nombre_imagen = f"imagen_{idx}.jpg"
-            ruta_imagen = os.path.join(carpeta_imagenes, nombre_imagen)
+        # Guardar imagen mediante screenshot
+        if producto.get('imagen_elemento'):
+            ruta_imagen = os.path.join(carpeta_imagenes, "imagen_1.jpg")
             
-            if self.descargar_imagen(url_imagen, ruta_imagen):
-                print(f"    ✓ Imagen {idx} descargada")
+            if self.capturar_screenshot_imagen(producto['imagen_elemento'], ruta_imagen):
+                print(f"    ✓ Imagen guardada correctamente")
             else:
-                print(f"    ✗ Error descargando imagen {idx}")
+                print(f"    ✗ No se pudo guardar la imagen")
+        else:
+            print(f"    ⚠️  No se encontró imagen para este producto")
         
         # Guardar datos.txt
         plantilla = f"""titulo={producto['titulo']}
@@ -277,32 +483,24 @@ sku="""
         print("="*60 + "\n")
         
         try:
-            # Iniciar navegador
             self.iniciar_navegador()
             
-            # Esperar a que WhatsApp cargue
             if not self.esperar_whatsapp_cargado():
                 return False
             
-            # Buscar contacto
             if not self.buscar_contacto(nombre_contacto):
                 return False
             
-            # Abrir información del contacto
             if not self.abrir_info_contacto():
                 return False
             
-            # Ir al catálogo
             if not self.ir_a_catalogo():
                 return False
             
-            # Contar productos
             total_productos = self.contar_productos_catalogo()
             
-            # Extraer productos
             productos = self.extraer_productos(cantidad_productos)
             
-            # Guardar productos
             print("\n💾 Guardando productos en carpetas...")
             for i, producto in enumerate(productos, 1):
                 self.guardar_producto(producto, i)
@@ -315,6 +513,8 @@ sku="""
             
         except Exception as e:
             print(f"\n❌ Error durante la extracción: {e}")
+            import traceback
+            traceback.print_exc()
             return False
         
         finally:
