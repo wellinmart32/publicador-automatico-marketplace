@@ -1,10 +1,61 @@
 {
-  "ultimo_articulo_publicado": 0,
-  "total_publicados": 0,
-  "historial": [],
+  "ultimo_articulo_publicado": 5,
+  "total_publicados": 5,
+  "historial": [
+    {
+      "articulo": 1,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "precio": "N/A",
+      "descripcion": "Publicado sin extracción previa",
+      "fecha_extraccion": null,
+      "fecha_publicacion": "2025-12-08 16:25:00",
+      "estado": "publicado_exitosamente",
+      "url_marketplace": null
+    },
+    {
+      "articulo": 2,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "precio": "N/A",
+      "descripcion": "Publicado sin extracción previa",
+      "fecha_extraccion": null,
+      "fecha_publicacion": "2025-12-08 16:25:33",
+      "estado": "publicado_exitosamente",
+      "url_marketplace": null
+    },
+    {
+      "articulo": 3,
+      "titulo": "EYooso Z - 686 RGB / INALAMBRICO 65 %",
+      "precio": "N/A",
+      "descripcion": "Publicado sin extracción previa",
+      "fecha_extraccion": null,
+      "fecha_publicacion": "2025-12-08 16:26:05",
+      "estado": "publicado_exitosamente",
+      "url_marketplace": null
+    },
+    {
+      "articulo": 4,
+      "titulo": "Cafe - Cuero PU",
+      "precio": "N/A",
+      "descripcion": "Publicado sin extracción previa",
+      "fecha_extraccion": null,
+      "fecha_publicacion": "2025-12-08 16:26:34",
+      "estado": "publicado_exitosamente",
+      "url_marketplace": null
+    },
+    {
+      "articulo": 5,
+      "titulo": "Negro - Cuero PU",
+      "precio": "N/A",
+      "descripcion": "Publicado sin extracción previa",
+      "fecha_extraccion": null,
+      "fecha_publicacion": "2025-12-08 16:27:04",
+      "estado": "publicado_exitosamente",
+      "url_marketplace": null
+    }
+  ],
   "pendientes": [],
   "errores": [],
-  "publicaciones_hoy": 0,
-  "fecha_ultima_publicacion": null,
-  "ultima_ejecucion": null
+  "publicaciones_hoy": 5,
+  "fecha_ultima_publicacion": "2025-12-08 16:27:04",
+  "ultima_ejecucion": "2025-12-08 16:27:04"
 }

@@ -1071,7 +1071,7 @@ sku="""
             print(f"✅ EXTRACCIÓN COMPLETADA - {len(productos)} productos guardados")
             print("="*60 + "\n")
             
-            return True
+            return productos
             
         except Exception as e:
             print(f"\n❌ Error durante la extracción: {e}")
