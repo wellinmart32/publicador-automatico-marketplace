@@ -30,7 +30,7 @@ def ejecutar_script(script_name, descripcion):
 
 
 def main():
-    """Orquestador maestro - Ejecuta el flujo completo"""
+    """Orquestador maestro - Ejecuta el flujo completo automáticamente"""
     
     print("\n" + "="*60)
     print(" " * 15 + "🎯 FLUJO COMPLETO AUTOMÁTICO")
@@ -45,6 +45,9 @@ def main():
         input("\nPresiona Enter para salir...")
         return
     
+    # Inicializar gestor de registro
+    gestor = GestorRegistro()
+    
     # Mostrar configuración
     print("⚙️  CONFIGURACIÓN DEL FLUJO:\n")
     print(f"   📦 Productos: {config['cantidad_productos']}")
@@ -53,8 +56,6 @@ def main():
     print(f"   🚀 Auto publicar: {'Sí' if config['auto_publicar'] else 'No'}")
     print(f"   📅 Límite diario: {config['max_publicaciones_por_dia']}")
     
-    # Inicializar gestor
-    gestor = GestorRegistro()
     gestor.mostrar_estadisticas()
     
     print("\n" + "="*60)
@@ -67,12 +68,10 @@ def main():
         print("  1️⃣  Crear/actualizar estructura de carpetas")
         print("  2️⃣  Extraer productos de WhatsApp")
         print("  3️⃣  Publicar automáticamente en Marketplace")
-        
     elif modo == 'solo_extraer':
         print("  1️⃣  Crear/actualizar estructura de carpetas")
         print("  2️⃣  Extraer productos de WhatsApp")
         print("  ⏭️   Publicación desactivada")
-        
     elif modo == 'solo_publicar':
         print("  1️⃣  Verificar estructura de carpetas")
         print("  2️⃣  Publicar productos existentes en Marketplace")
@@ -80,8 +79,19 @@ def main():
     
     print("="*60 + "\n")
     
-    # Confirmación
-    input("⏳ Presiona Enter para continuar (o Ctrl+C para cancelar)...")
+    # Countdown automático sin pedir Enter
+    print("⏳ Iniciando automáticamente en 3 segundos...")
+    print("   (Presiona Ctrl+C para cancelar)\n")
+    
+    try:
+        for i in range(3, 0, -1):
+            print(f"   {i}...", end='\r', flush=True)
+            sys.stdout.flush()
+            time.sleep(1)
+        print("   ✅ ¡Iniciando!\n")
+    except KeyboardInterrupt:
+        print("\n\n❌ Proceso cancelado por el usuario\n")
+        sys.exit(0)
     
     # FASE 1: Crear/actualizar estructura
     print("\n" + "="*60)
@@ -143,7 +153,6 @@ def main():
     print("✅ FLUJO COMPLETO FINALIZADO")
     print("="*60 + "\n")
     
-    # Mostrar estadísticas finales
     gestor_final = GestorRegistro()
     gestor_final.mostrar_estadisticas()
     

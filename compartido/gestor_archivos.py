@@ -143,16 +143,17 @@ def crear_carpeta_articulo(numero):
     if not os.path.exists(carpeta_imagenes):
         os.makedirs(carpeta_imagenes)
     
-    # Crear archivo datos.txt con plantilla
+    # ✅ PLANTILLA ACTUALIZADA (agregar campo ubicacion)
     if not os.path.exists(archivo_datos):
         plantilla = """titulo=Ejemplo Producto
 precio=100
 categoria=Electrónica e informática
 estado=Nuevo
+ubicacion=Mall del Sol, Guayaquil
 descripcion=Descripción detallada del producto aquí
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
-etiquetas=teclado,rgb,gaming,mecanico
+etiquetas=
 sku="""
         with open(archivo_datos, 'w', encoding='utf-8') as f:
             f.write(plantilla)
