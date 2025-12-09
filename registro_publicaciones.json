@@ -1,14 +1,14 @@
 {
   "ultimo_articulo_publicado": 5,
-  "total_publicados": 9,
+  "total_publicados": 10,
   "historial": [
     {
       "articulo": 1,
       "titulo": "Plomo - Cuero PU",
       "precio": "11",
       "descripcion": "Color: Plomo | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm",
-      "fecha_extraccion": "2025-12-09 01:12:58",
-      "fecha_publicacion": "2025-12-09 01:13:43",
+      "fecha_extraccion": "2025-12-09 15:50:56",
+      "fecha_publicacion": "2025-12-09 15:51:53",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
@@ -17,8 +17,8 @@
       "titulo": "Razer BlackShark V2 X",
       "precio": "69",
       "descripcion": "Marca: Razer | Modelo: BlackShark V2 X | Color: Negro | Tipo de interfaz: Conector de audio de 3,5 m...",
-      "fecha_extraccion": "2025-12-09 01:12:58",
-      "fecha_publicacion": "2025-12-09 01:14:31",
+      "fecha_extraccion": "2025-12-09 15:50:56",
+      "fecha_publicacion": "2025-12-09 15:52:46",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
@@ -27,8 +27,8 @@
       "titulo": "E-Yooso | X11 PRO | Negro",
       "precio": "34",
       "descripcion": "Conectividad avanzada: Funciona por Bluetooth, conexión inalámbrica 2.4 GHz o cable Tipo-C - Permite...",
-      "fecha_extraccion": "2025-12-09 01:12:58",
-      "fecha_publicacion": "2025-12-09 01:15:24",
+      "fecha_extraccion": "2025-12-09 15:50:56",
+      "fecha_publicacion": "2025-12-09 15:53:53",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
@@ -36,9 +36,9 @@
       "articulo": 4,
       "titulo": "Cleaning Kit 20 en 1",
       "precio": "12",
-      "descripcion": "Ideal para mantener sus dispositivos electrónicos en condiciones de primera categoría. | Limpieza se...",
-      "fecha_extraccion": "2025-12-09 01:12:58",
-      "fecha_publicacion": "2025-12-09 01:16:08",
+      "descripcion": "Ideal para mantener sus dispositivos electrónicos en condiciones de primera categoría. | Eliminación...",
+      "fecha_extraccion": "2025-12-09 15:50:56",
+      "fecha_publicacion": "2025-12-09 15:54:50",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
@@ -47,23 +47,16 @@
       "titulo": "Morado - Celeste",
       "precio": "15",
       "descripcion": "KeyCaps: 106 teclas | Marca: Yiqi Technology | Modelo: PBT2-23 | Color: Morado/Celeste | Material: P...",
-      "fecha_extraccion": "2025-12-09 01:12:58",
-      "fecha_publicacion": "2025-12-09 01:16:51",
+      "fecha_extraccion": "2025-12-09 15:50:56",
+      "fecha_publicacion": "2025-12-09 15:55:33",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     }
   ],
   "pendientes": [],
-  "errores": [
-    {
-      "articulo": 1,
-      "titulo": "EYooso Z - 11 RGB / 60 %",
-      "error": "Error en publicación",
-      "fecha": "2025-12-09 00:52:22"
-    }
-  ],
-  "publicaciones_hoy": 9,
-  "fecha_ultima_publicacion": "2025-12-09 01:16:51",
-  "ultima_ejecucion": "2025-12-09 01:16:51",
+  "errores": [],
+  "publicaciones_hoy": 10,
+  "fecha_ultima_publicacion": "2025-12-09 15:55:33",
+  "ultima_ejecucion": "2025-12-09 15:55:33",
   "indice_catalogo_whatsapp": 10
 }

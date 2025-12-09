@@ -249,10 +249,10 @@ class ExtractorWhatsApp:
             try:
                 # SELECTORES CORREGIDOS basados en el HTML real
                 selectores = [
-                    "//span[@class='x1ph7ams']",  # Selector por clase específica
-                    "//span[contains(text(), 'Leer más')]",  # Selector por texto
-                    "//span[@class='x1ph7ams' and contains(text(), 'Leer más')]",  # Combinado
-                    "//div[contains(@class, 'x1f6kntn')]//span[contains(text(), 'Leer más')]"  # Con contexto
+                    "//span[@class='x1ph7ams']",
+                    "//span[contains(text(), 'Leer más')]",
+                    "//span[@class='x1ph7ams' and contains(text(), 'Leer más')]",
+                    "//div[contains(@class, 'x1f6kntn')]//span[contains(text(), 'Leer más')]"
                 ]
                 
                 boton_encontrado = False
@@ -265,14 +265,12 @@ class ExtractorWhatsApp:
                         for idx, boton in enumerate(botones):
                             try:
                                 if boton.is_displayed():
-                                    # Scroll al elemento
                                     self.driver.execute_script(
                                         "arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", 
                                         boton
                                     )
                                     time.sleep(0.5)
                                     
-                                    # Intentar clic normal
                                     try:
                                         boton.click()
                                         botones_clickeados += 1
@@ -280,7 +278,6 @@ class ExtractorWhatsApp:
                                         time.sleep(2)
                                         boton_encontrado = True
                                     except:
-                                        # Intentar clic con JavaScript
                                         try:
                                             self.driver.execute_script("arguments[0].click();", boton)
                                             botones_clickeados += 1
@@ -426,33 +423,45 @@ class ExtractorWhatsApp:
             # Expandir descripción - CON SELECTORES CORREGIDOS
             self.expandir_leer_mas_agresivo()
             
-            # Extraer descripción completa
+            # Extraer descripción completa - MÉTODO MEJORADO
             try:
                 detalles = []
+                detalles_vistos = set()  # Para evitar duplicados
+                
+                # Buscar TODOS los elementos que contengan "○"
                 elementos_bullets = self.driver.find_elements(By.XPATH, "//*[contains(text(), '○')]")
                 
                 print(f"📋 Encontrados {len(elementos_bullets)} elementos con ○")
                 
+                # Procesar CADA elemento por separado
                 for elem in elementos_bullets[:50]:
                     try:
-                        if elem.is_displayed():
-                            texto_completo = elem.text.strip()
-                            partes = texto_completo.split('○')
+                        if not elem.is_displayed():
+                            continue
+                        
+                        # Obtener TODO el texto del elemento
+                        texto_completo = elem.text.strip()
+                        
+                        # Dividir por "○" y procesar cada parte
+                        partes = texto_completo.split('○')
+                        
+                        for parte in partes:
+                            linea = parte.strip()
                             
-                            for parte in partes:
-                                linea = parte.strip()
+                            # Validar la línea
+                            if (linea and 
+                                len(linea) > 3 and 
+                                len(linea) < 300 and
+                                linea not in detalles_vistos and
+                                linea != producto['titulo'] and 
+                                '$' not in linea and
+                                'Leer más' not in linea and
+                                'Ver más' not in linea and
+                                'Enviar mensaje' not in linea):
                                 
-                                if linea and len(linea) > 3 and len(linea) < 200:
-                                    if (linea not in detalles and 
-                                        linea != producto['titulo'] and 
-                                        '$' not in linea and
-                                        'Leer más' not in linea and
-                                        'Ver más' not in linea):
-                                        
-                                        detalles.append(linea)
-                                        
-                                        if len(detalles) >= 50:
-                                            break
+                                detalles.append(linea)
+                                detalles_vistos.add(linea)
+                                
                     except:
                         continue
                 
