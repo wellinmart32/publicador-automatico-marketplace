@@ -1,9 +1,9 @@
-titulo=Trabajo John
+titulo=EYooso Z - 686 RGB / INALAMBRICO 65 %
 precio=55
 categoria=Electrónica e informática
 estado=Nuevo
-ubicacion=Mall del Sol, Guayaquil
-descripcion=Marca: E-Yooso | Modelo: Z - 686 INALAMBRICO | Color: Blanco
+ubicacion=Guayaquil
+descripcion=Marca: E-Yooso | Modelo: Z - 686 INALAMBRICO | Color: Blanco | Tipo de interfaz: USB | Modos de Il
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

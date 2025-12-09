@@ -24,19 +24,34 @@ def main():
     # Inicializar gestor de registro
     gestor = GestorRegistro()
     
-    # Determinar desde qué artículo comenzar
+    # Determinar desde qué artículo comenzar - LÓGICA MEJORADA
     articulo_inicio = 1
     total_carpetas = contar_articulos()
     
     if gestor.registro['pendientes']:
-        # Si hay pendientes, tomar el mínimo (el más antiguo)
+        # Si hay pendientes, extraer desde el mínimo pendiente
         articulo_inicio = min(gestor.registro['pendientes'])
         print(f"📦 Hay artículos pendientes, continuando desde Articulo_{articulo_inicio}\n")
+        
     elif gestor.registro['ultimo_articulo_publicado'] > 0:
-        # Si no hay pendientes, continuar desde el siguiente al último publicado
+        # Verificar si ya están todos extraídos
+        total_extraidos = len(gestor.registro['historial'])
+        
+        # Si ya se extrajeron productos y no hay pendientes, salir
+        if total_extraidos >= total_carpetas and len(gestor.registro['pendientes']) == 0:
+            print(f"\n✅ Todos los artículos ya están extraídos y publicados")
+            print(f"   Total extraídos: {total_extraidos}")
+            print(f"   Total publicados: {gestor.registro['total_publicados']}")
+            print(f"\n💡 Para re-extraer productos nuevos:")
+            print(f"   1. Ejecuta '1_Crear_Estructura.bat' para limpiar")
+            print(f"   2. O aumenta 'cantidad_productos' en '4_Configurador.bat'\n")
+            input("Presiona Enter para salir...")
+            return
+        
+        # Continuar desde el siguiente al último publicado
         articulo_inicio = gestor.registro['ultimo_articulo_publicado'] + 1
         
-        # Rotación: Si excede el total, volver a 1
+        # Si excede el total, volver a 1 (rotación)
         if articulo_inicio > total_carpetas:
             articulo_inicio = 1
             print(f"🔄 Rotación completada, reiniciando desde Articulo_1\n")
@@ -76,7 +91,7 @@ def main():
         productos_extraidos = extractor.ejecutar(
             config['contacto_whatsapp'], 
             config['productos_por_extraccion'],
-            articulo_inicio  # ✅ NUEVO: Indicar desde dónde empezar
+            articulo_inicio
         )
         
         # Registrar productos extraídos

@@ -1,111 +1,61 @@
 {
   "ultimo_articulo_publicado": 5,
-  "total_publicados": 10,
+  "total_publicados": 5,
   "historial": [
     {
       "articulo": 1,
       "titulo": "EYooso Z - 11 RGB / 60 %",
-      "precio": "N/A",
-      "descripcion": "Publicado sin extracción previa",
-      "fecha_extraccion": null,
-      "fecha_publicacion": "2025-12-08 16:25:00",
+      "precio": "43",
+      "descripcion": "Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo | Modos de Iluminación: 20 Modos | Incluye",
+      "fecha_extraccion": "2025-12-08 21:51:38",
+      "fecha_publicacion": "2025-12-08 21:53:23",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 2,
       "titulo": "EYooso Z - 11 RGB / 60 %",
-      "precio": "N/A",
-      "descripcion": "Publicado sin extracción previa",
-      "fecha_extraccion": null,
-      "fecha_publicacion": "2025-12-08 16:25:33",
+      "precio": "43",
+      "descripcion": "Marca: E-Yooso | Modelo: Z - 11 | Color: Plomo - Negro | Modos de Iluminación: 20 Modos | Incluye",
+      "fecha_extraccion": "2025-12-08 21:51:38",
+      "fecha_publicacion": "2025-12-08 21:54:05",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 3,
       "titulo": "EYooso Z - 686 RGB / INALAMBRICO 65 %",
-      "precio": "N/A",
-      "descripcion": "Publicado sin extracción previa",
-      "fecha_extraccion": null,
-      "fecha_publicacion": "2025-12-08 16:26:05",
+      "precio": "55",
+      "descripcion": "Marca: E-Yooso | Modelo: Z - 686 INALAMBRICO | Color: Blanco | Tipo de interfaz: USB | Modos de Il",
+      "fecha_extraccion": "2025-12-08 21:51:38",
+      "fecha_publicacion": "2025-12-08 21:54:54",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 4,
       "titulo": "Cafe - Cuero PU",
-      "precio": "N/A",
-      "descripcion": "Publicado sin extracción previa",
-      "fecha_extraccion": null,
-      "fecha_publicacion": "2025-12-08 16:26:34",
-      "estado": "publicado_exitosamente",
-      "url_marketplace": null
-    },
-    {
-      "articulo": 5,
-      "titulo": "Negro - Cuero PU",
-      "precio": "N/A",
-      "descripcion": "Publicado sin extracción previa",
-      "fecha_extraccion": null,
-      "fecha_publicacion": "2025-12-08 16:27:04",
-      "estado": "publicado_exitosamente",
-      "url_marketplace": null
-    },
-    {
-      "articulo": 1,
-      "titulo": "EYooso Z - 11 RGB / 60 %",
-      "precio": "43.00",
-      "descripcion": "Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo | Modos de Iluminación: 20 Modos | Incluye la...",
-      "fecha_extraccion": "2025-12-08 16:46:02",
-      "fecha_publicacion": "2025-12-08 16:46:36",
-      "estado": "publicado_exitosamente",
-      "url_marketplace": null
-    },
-    {
-      "articulo": 2,
-      "titulo": "EYooso Z - 11 RGB / 60 %",
-      "precio": "43.00",
-      "descripcion": "Marca: E-Yooso | Modelo: Z - 11 | Color: Plomo - Negro | Modos de Iluminación: 20 Modos | Incluye la...",
-      "fecha_extraccion": "2025-12-08 16:46:02",
-      "fecha_publicacion": "2025-12-08 16:47:08",
-      "estado": "publicado_exitosamente",
-      "url_marketplace": null
-    },
-    {
-      "articulo": 3,
-      "titulo": "EYooso Z - 686 RGB / INALAMBRICO 65 %",
-      "precio": "55.00",
-      "descripcion": "Marca: E-Yooso | Modelo: Z - 686 INALAMBRICO | Color: Blanco | Tipo de interfaz: USB | Modos de Ilum...",
-      "fecha_extraccion": "2025-12-08 16:46:02",
-      "fecha_publicacion": "2025-12-08 16:47:40",
-      "estado": "publicado_exitosamente",
-      "url_marketplace": null
-    },
-    {
-      "articulo": 4,
-      "titulo": "Cafe - Cuero PU",
-      "precio": "11.00",
+      "precio": "11",
       "descripcion": "Color: Cafe | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm",
-      "fecha_extraccion": "2025-12-08 16:46:02",
-      "fecha_publicacion": "2025-12-08 16:48:13",
+      "fecha_extraccion": "2025-12-08 21:51:38",
+      "fecha_publicacion": "2025-12-08 21:55:45",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 5,
       "titulo": "Negro - Cuero PU",
-      "precio": "11.00",
+      "precio": "11",
       "descripcion": "Color: Negro | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm",
-      "fecha_extraccion": "2025-12-08 16:46:02",
-      "fecha_publicacion": "2025-12-08 16:48:50",
+      "fecha_extraccion": "2025-12-08 21:51:38",
+      "fecha_publicacion": "2025-12-08 21:56:32",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     }
   ],
   "pendientes": [],
   "errores": [],
-  "publicaciones_hoy": 10,
-  "fecha_ultima_publicacion": "2025-12-08 16:48:50",
-  "ultima_ejecucion": "2025-12-08 16:48:50"
+  "publicaciones_hoy": 5,
+  "fecha_ultima_publicacion": "2025-12-08 21:56:32",
+  "ultima_ejecucion": "2025-12-08 21:56:32"
 }

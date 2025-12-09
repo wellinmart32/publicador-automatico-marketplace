@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import time
 from compartido.gestor_archivos import leer_config_global, crear_estructura_carpetas
 from gestor_registro import GestorRegistro
 

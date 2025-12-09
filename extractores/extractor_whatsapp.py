@@ -178,7 +178,6 @@ class ExtractorWhatsApp:
             try:
                 time.sleep(2)
                 
-                # Filtrar productos reales (sin videos ni categorías)
                 items = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
                 productos_reales = []
                 
@@ -198,14 +197,12 @@ class ExtractorWhatsApp:
                     print(f"[INFO] Solo hay {len(productos_reales)} productos disponibles")
                     break
                 
-                # Hacer clic en el producto
                 producto_item = productos_reales[indice_real]
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", producto_item)
                 time.sleep(1.5)
                 producto_item.click()
                 time.sleep(6)
                 
-                # Verificar si es video
                 videos = self.driver.find_elements(By.TAG_NAME, 'video')
                 if len(videos) > 0:
                     self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
@@ -213,7 +210,6 @@ class ExtractorWhatsApp:
                     indice_real += 1
                     continue
                 
-                # Extraer datos del producto
                 producto = self.extraer_datos_producto(numero_articulo=numero_articulo)
                 
                 if producto:
@@ -221,7 +217,6 @@ class ExtractorWhatsApp:
                 
                 indice_real += 1
                 
-                # Volver al catálogo
                 self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
                 time.sleep(5)
                 
@@ -239,6 +234,83 @@ class ExtractorWhatsApp:
         print(f"✅ EXTRACCIÓN COMPLETADA: {len(productos_extraidos)} productos")
         print(f"{'='*60}\n")
         return productos_extraidos
+    
+    def expandir_leer_mas_agresivo(self):
+        """Estrategia AGRESIVA para expandir TODO el contenido oculto"""
+        print("📖 Expandiendo descripción completa...")
+        
+        # Estrategia 1: Buscar y hacer clic en TODOS los botones visibles
+        max_intentos_globales = 5
+        botones_clickeados = 0
+        
+        for intento_global in range(max_intentos_globales):
+            try:
+                # Múltiples selectores para encontrar el botón
+                selectores = [
+                    "//span[@role='button' and contains(text(), 'Leer más')]",
+                    "//span[contains(text(), 'Leer más')]",
+                    "//div[@role='button']//span[contains(text(), 'Leer más')]",
+                    "//*[contains(text(), 'Leer más') and (@role='button' or parent::*[@role='button'])]"
+                ]
+                
+                boton_encontrado = False
+                
+                for selector in selectores:
+                    try:
+                        botones = self.driver.find_elements(By.XPATH, selector)
+                        print(f"  [Intento {intento_global + 1}] Encontrados {len(botones)} botones con selector")
+                        
+                        for idx, boton in enumerate(botones):
+                            try:
+                                if boton.is_displayed():
+                                    # Scroll al elemento
+                                    self.driver.execute_script(
+                                        "arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", 
+                                        boton
+                                    )
+                                    time.sleep(0.5)
+                                    
+                                    # Intentar clic normal
+                                    try:
+                                        boton.click()
+                                        botones_clickeados += 1
+                                        print(f"  ✅ Botón {idx + 1} expandido con clic normal")
+                                        time.sleep(2)
+                                        boton_encontrado = True
+                                    except:
+                                        # Intentar clic con JavaScript
+                                        try:
+                                            self.driver.execute_script("arguments[0].click();", boton)
+                                            botones_clickeados += 1
+                                            print(f"  ✅ Botón {idx + 1} expandido con JavaScript")
+                                            time.sleep(2)
+                                            boton_encontrado = True
+                                        except:
+                                            pass
+                            except:
+                                continue
+                        
+                        if boton_encontrado:
+                            break
+                            
+                    except:
+                        continue
+                
+                if not boton_encontrado:
+                    print(f"  ⚠️  No se encontraron más botones 'Leer más'")
+                    break
+                
+                # Pequeña espera entre intentos
+                time.sleep(1)
+                
+            except Exception as e:
+                print(f"  ⚠️  Error en intento {intento_global + 1}: {e}")
+                break
+        
+        print(f"✅ Expansión completada: {botones_clickeados} botón(es) clickeado(s)")
+        time.sleep(3)  # Espera final para que cargue todo
+        
+        return botones_clickeados > 0
     
     def extraer_datos_producto(self, numero_articulo=None):
         """Extrae título, precio, descripción e imágenes del producto"""
@@ -291,7 +363,7 @@ class ExtractorWhatsApp:
                 except:
                     pass
             
-            # Extraer título - Filtros mejorados para evitar "Trabajo John"
+            # Extraer título
             try:
                 titulos_posibles = self.driver.find_elements(By.XPATH, 
                     "//div[contains(@class, 'x1okw0bk')]//span[contains(@class, 'selectable-text')]"
@@ -304,7 +376,6 @@ class ExtractorWhatsApp:
                         
                         texto = titulo_elem.text.strip()
                         
-                        # Filtros para evitar falsos positivos
                         if (texto and 
                             8 < len(texto) < 70 and 
                             '$' not in texto and 
@@ -323,7 +394,7 @@ class ExtractorWhatsApp:
             except:
                 producto['titulo'] = "Sin título"
             
-            # Extraer precio - Convertir a entero sin decimales
+            # Extraer precio
             try:
                 precios = self.driver.find_elements(By.XPATH, 
                     "//*[starts-with(text(), '$') and string-length(text()) < 15]"
@@ -351,35 +422,17 @@ class ExtractorWhatsApp:
             except:
                 producto['precio'] = "0"
             
-            # Expandir descripción si hay "Leer más"
-            try:
-                selectores_leer_mas = [
-                    "//span[@role='button' and contains(text(), 'Leer más')]",
-                    "//span[contains(text(), 'Leer más')]"
-                ]
-                
-                for selector in selectores_leer_mas:
-                    try:
-                        elementos = self.driver.find_elements(By.XPATH, selector)
-                        for elem in elementos:
-                            try:
-                                if elem.is_displayed():
-                                    elem.click()
-                                    time.sleep(2)
-                                    break
-                            except:
-                                continue
-                    except:
-                        continue
-            except:
-                pass
+            # EXPANDIR DESCRIPCIÓN - Estrategia agresiva
+            self.expandir_leer_mas_agresivo()
             
-            # Extraer descripción
+            # Extraer descripción completa
             try:
                 detalles = []
                 elementos_bullets = self.driver.find_elements(By.XPATH, "//*[contains(text(), '○')]")
                 
-                for elem in elementos_bullets[:30]:
+                print(f"📋 Encontrados {len(elementos_bullets)} elementos con ○")
+                
+                for elem in elementos_bullets[:50]:
                     try:
                         if elem.is_displayed():
                             texto_completo = elem.text.strip()
@@ -388,28 +441,30 @@ class ExtractorWhatsApp:
                             for parte in partes:
                                 linea = parte.strip()
                                 
-                                if linea and len(linea) > 5 and len(linea) < 200:
-                                    if any(palabra in linea.lower() for palabra in 
-                                           ['marca:', 'modelo:', 'color:', 'material:', 'ancho:', 'largo:']):
+                                if linea and len(linea) > 3 and len(linea) < 200:
+                                    if (linea not in detalles and 
+                                        linea != producto['titulo'] and 
+                                        '$' not in linea and
+                                        'Leer más' not in linea and
+                                        'Ver más' not in linea):
                                         
-                                        if (linea not in detalles and 
-                                            linea != producto['titulo'] and 
-                                            '$' not in linea):
-                                            detalles.append(linea)
-                                            
-                                            if len(detalles) >= 15:
-                                                break
+                                        detalles.append(linea)
+                                        
+                                        if len(detalles) >= 50:
+                                            break
                     except:
                         continue
                 
                 if detalles:
                     producto['descripcion'] = ' | '.join(detalles)
+                    print(f"✅ Descripción capturada: {len(detalles)} detalles")
                 else:
                     producto['descripcion'] = producto['titulo']
+                    print("⚠️  No se encontraron detalles, usando título")
             except:
                 producto['descripcion'] = producto['titulo']
             
-            # Guardar datos.txt con formato correcto
+            # Guardar datos.txt
             if numero_articulo:
                 carpeta_articulo = os.path.join(self.carpeta_principal, f"Articulo_{numero_articulo}")
                 archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
@@ -419,7 +474,7 @@ class ExtractorWhatsApp:
 precio={producto['precio']}
 categoria=Electrónica e informática
 estado=Nuevo
-ubicacion=Mall del Sol, Guayaquil
+ubicacion=Guayaquil
 descripcion={producto['descripcion']}
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
@@ -442,7 +497,6 @@ sku="""
         try:
             src = elemento_imagen.get_attribute('src')
             
-            # Si es URL HTTP normal, descargar directamente
             if src.startswith('http'):
                 import requests
                 response = requests.get(src, timeout=10)
@@ -450,7 +504,6 @@ sku="""
                     f.write(response.content)
                 return True
             
-            # Si es blob URL, usar JavaScript
             elif src.startswith('blob:'):
                 try:
                     base64_data = self.driver.execute_async_script("""

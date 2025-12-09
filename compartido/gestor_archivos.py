@@ -5,10 +5,6 @@ import time
 from datetime import datetime
 
 
-# ============================================================
-# FUNCIONES DE LECTURA DE CONFIGURACIÓN
-# ============================================================
-
 def leer_config_global():
     """Lee config_global.txt y retorna un diccionario con la configuración"""
     archivo_config = "config_global.txt"
@@ -20,7 +16,6 @@ def leer_config_global():
     config = configparser.ConfigParser()
     config.read(archivo_config, encoding='utf-8')
     
-    # Convertir a diccionario simple
     config_dict = {
         'cantidad_productos': int(config['GENERAL']['cantidad_productos']),
         'modo': config['GENERAL']['modo'],
@@ -70,10 +65,6 @@ backup_antes_borrar = si
     print("✅ config_global.txt creado con valores por defecto")
 
 
-# ============================================================
-# FUNCIONES DE GESTIÓN DE CARPETAS
-# ============================================================
-
 def crear_estructura_carpetas():
     """Crea/actualiza la jerarquía de carpetas según config_global.txt"""
     config = leer_config_global()
@@ -81,32 +72,27 @@ def crear_estructura_carpetas():
     
     carpeta_principal = "ArticulosMarketplace"
     
-    # Crear carpeta principal si no existe
     if not os.path.exists(carpeta_principal):
         os.makedirs(carpeta_principal)
         print(f"✓ Carpeta principal '{carpeta_principal}' creada")
     
-    # Crear archivo de configuración si no existe
     archivo_config = os.path.join(carpeta_principal, "config.txt")
     if not os.path.exists(archivo_config):
         with open(archivo_config, 'w', encoding='utf-8') as f:
             f.write("1")
         print(f"✓ Archivo 'config.txt' creado")
     
-    # Contar carpetas actuales
     carpetas_actuales = contar_articulos()
     
     print(f"\n📊 Estado actual:")
     print(f"   Carpetas existentes: {carpetas_actuales}")
     print(f"   Carpetas deseadas: {cantidad_deseada}")
     
-    # Decidir qué hacer
     if carpetas_actuales == cantidad_deseada:
         print(f"\n✅ Ya existen {cantidad_deseada} carpetas. No se requiere acción.")
         return
     
     elif cantidad_deseada > carpetas_actuales:
-        # AGREGAR carpetas faltantes
         faltantes = cantidad_deseada - carpetas_actuales
         print(f"\n📦 Faltan {faltantes} carpeta(s). Creando...")
         
@@ -116,13 +102,11 @@ def crear_estructura_carpetas():
         print(f"\n✅ {faltantes} carpeta(s) creada(s) exitosamente")
     
     else:
-        # ELIMINAR carpetas sobrantes
         sobrantes = carpetas_actuales - cantidad_deseada
         print(f"\n🗑️  Sobran {sobrantes} carpeta(s). Procediendo a eliminar...")
         
         eliminar_carpetas_sobrantes(cantidad_deseada + 1, carpetas_actuales, config)
     
-    # Crear archivos .gitkeep
     crear_gitkeep_en_imagenes()
     
     print(f"\n✅ Estructura actualizada en: {os.path.abspath(carpeta_principal)}")
@@ -135,21 +119,19 @@ def crear_carpeta_articulo(numero):
     carpeta_imagenes = os.path.join(carpeta_articulo, "imagenes")
     archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
     
-    # Crear carpeta del artículo
     if not os.path.exists(carpeta_articulo):
         os.makedirs(carpeta_articulo)
     
-    # Crear carpeta de imágenes
     if not os.path.exists(carpeta_imagenes):
         os.makedirs(carpeta_imagenes)
     
-    # ✅ PLANTILLA ACTUALIZADA (agregar campo ubicacion)
     if not os.path.exists(archivo_datos):
+        # UBICACIÓN CAMBIADA: Guayaquil en lugar de Mall del Sol, Guayaquil
         plantilla = """titulo=Ejemplo Producto
 precio=100
 categoria=Electrónica e informática
 estado=Nuevo
-ubicacion=Mall del Sol, Guayaquil
+ubicacion=Guayaquil
 descripcion=Descripción detallada del producto aquí
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
@@ -167,13 +149,11 @@ def eliminar_carpetas_sobrantes(desde, hasta, config):
     carpetas_a_eliminar = []
     carpetas_con_datos = []
     
-    # Analizar carpetas a eliminar
     for i in range(desde, hasta + 1):
         carpeta = os.path.join(carpeta_principal, f"Articulo_{i}")
         if os.path.exists(carpeta):
             carpetas_a_eliminar.append(i)
             
-            # Verificar si tiene contenido
             info = verificar_contenido_carpeta(i)
             if info['tiene_datos'] or info['tiene_imagenes']:
                 carpetas_con_datos.append(info)
@@ -182,7 +162,6 @@ def eliminar_carpetas_sobrantes(desde, hasta, config):
         print("✅ No hay carpetas para eliminar")
         return
     
-    # Mostrar advertencia si hay datos
     if carpetas_con_datos:
         print(f"\n⚠️  ADVERTENCIA: {len(carpetas_con_datos)} carpeta(s) contienen datos:")
         for info in carpetas_con_datos:
@@ -193,18 +172,16 @@ def eliminar_carpetas_sobrantes(desde, hasta, config):
                 detalles.append("datos.txt presente")
             print(f"   - Articulo_{info['numero']}: {', '.join(detalles)}")
     
-    # Decidir tiempo de confirmación
     if config['confirmacion_borrado']:
         if carpetas_con_datos:
-            tiempo_espera = 10  # 10 segundos si hay datos
+            tiempo_espera = 10
             print(f"\n🗑️  Se eliminarán en {tiempo_espera} segundos...")
         else:
-            tiempo_espera = 5  # 5 segundos si están vacías
+            tiempo_espera = 5
             print(f"\n🗑️  Se eliminarán {len(carpetas_a_eliminar)} carpeta(s) vacía(s) en {tiempo_espera} segundos...")
         
         print("   Presiona Ctrl+C para CANCELAR\n")
         
-        # Countdown
         try:
             for i in range(tiempo_espera, 0, -1):
                 print(f"   {i}...", end='\r', flush=True)
@@ -214,11 +191,9 @@ def eliminar_carpetas_sobrantes(desde, hasta, config):
             print("\n\n❌ Eliminación cancelada por el usuario")
             return
     
-    # Crear backup si está configurado
     if config['backup_antes_borrar'] and carpetas_con_datos:
         crear_backup(carpetas_a_eliminar)
     
-    # Eliminar carpetas
     print("\n🗑️  Eliminando carpetas...")
     for i in carpetas_a_eliminar:
         carpeta = os.path.join(carpeta_principal, f"Articulo_{i}")
@@ -245,7 +220,6 @@ def verificar_contenido_carpeta(numero):
         'tiene_datos': False
     }
     
-    # Verificar imágenes
     if os.path.exists(carpeta_imagenes):
         imagenes = [f for f in os.listdir(carpeta_imagenes) 
                    if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))
@@ -253,12 +227,9 @@ def verificar_contenido_carpeta(numero):
         info['num_imagenes'] = len(imagenes)
         info['tiene_imagenes'] = len(imagenes) > 0
     
-    # Verificar datos.txt
     if os.path.exists(archivo_datos):
-        # Verificar que no sea la plantilla vacía
         with open(archivo_datos, 'r', encoding='utf-8') as f:
             contenido = f.read()
-            # Si tiene más de 200 caracteres, asumimos que tiene datos reales
             info['tiene_datos'] = len(contenido) > 200 and 'Ejemplo Producto' not in contenido
     
     return info
@@ -287,10 +258,6 @@ def crear_backup(carpetas_a_eliminar):
     print(f"✅ Backup completado")
 
 
-# ============================================================
-# FUNCIONES EXISTENTES (Mantener compatibilidad)
-# ============================================================
-
 def contar_articulos():
     """Cuenta cuántas carpetas de artículos existen"""
     carpeta_principal = "ArticulosMarketplace"
@@ -299,7 +266,6 @@ def contar_articulos():
     if not os.path.exists(carpeta_principal):
         return 0
     
-    # Contar carpetas que empiecen con "Articulo_"
     for item in os.listdir(carpeta_principal):
         ruta_completa = os.path.join(carpeta_principal, item)
         if os.path.isdir(ruta_completa) and item.startswith("Articulo_"):
@@ -342,7 +308,6 @@ def obtener_numero_articulo():
     print("Ingresa el número del artículo a publicar (0 o Enter para automático):")
     print("Esperando 7 segundos...")
     
-    # Variable para almacenar el input
     entrada_usuario = [""]
     
     def obtener_input():
@@ -351,15 +316,12 @@ def obtener_numero_articulo():
         except:
             pass
     
-    # Crear thread para input
     thread_input = threading.Thread(target=obtener_input)
     thread_input.daemon = True
     thread_input.start()
     
-    # Esperar 7 segundos
     thread_input.join(timeout=7)
     
-    # Procesar entrada
     numero = None
     if entrada_usuario[0].strip():
         try:
@@ -371,14 +333,12 @@ def obtener_numero_articulo():
             print(f"❌ Entrada inválida. Usando automático...")
             numero = None
     
-    # Si no hay número válido, leer de config
     if numero is None:
         numero = leer_numero_config()
         print(f"📖 Usando automáticamente: Artículo {numero}")
     else:
         print(f"✅ Seleccionado manualmente: Artículo {numero}")
     
-    # Validar que el número esté en rango
     if numero > total_articulos:
         numero = 1
     
@@ -394,7 +354,6 @@ def leer_datos_articulo(numero_articulo):
         print(f"❌ No se encontró el archivo datos.txt en Articulo_{numero_articulo}")
         return None
     
-    # Leer archivo y parsear campos
     datos = {}
     with open(archivo_datos, 'r', encoding='utf-8') as f:
         for linea in f:
@@ -431,7 +390,6 @@ def obtener_imagenes_articulo(numero_articulo):
     if not os.path.exists(carpeta_imagenes):
         return []
     
-    # Obtener archivos de imagen
     extensiones_validas = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
     imagenes = []
     
@@ -441,5 +399,4 @@ def obtener_imagenes_articulo(numero_articulo):
             ruta_completa = os.path.abspath(os.path.join(carpeta_imagenes, archivo))
             imagenes.append(ruta_completa)
     
-    return imagenes[:10]  # Máximo 10 imágenes
-    
+    return imagenes[:10]

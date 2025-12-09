@@ -9,7 +9,7 @@ import time
 import os
 
 class PublicadorMarketplace:
-    """Maneja la automatización de publicaciones en Facebook Marketplace - CON CORRECCIONES"""
+    """Maneja la automatización de publicaciones en Facebook Marketplace"""
     
     def __init__(self):
         self.driver = None
@@ -19,24 +19,76 @@ class PublicadorMarketplace:
         """Inicia Chrome con perfil dedicado para el bot"""
         print("🌐 Iniciando Chrome...")
         
-        # Configurar opciones para Chrome
         opciones = webdriver.ChromeOptions()
         
-        # Usar perfil dedicado para el bot (se creará automáticamente)
         ruta_perfil_bot = os.path.join(os.getcwd(), "perfiles", "marketplace_bot")
         opciones.add_argument(f"--user-data-dir={ruta_perfil_bot}")
         
-        # Opciones adicionales
         opciones.add_argument("--disable-blink-features=AutomationControlled")
         opciones.add_experimental_option("excludeSwitches", ["enable-automation"])
         opciones.add_experimental_option('useAutomationExtension', False)
         
-        # Iniciar driver
         servicio = Service(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=servicio, options=opciones)
         self.wait = WebDriverWait(self.driver, 20)
         
         print("✅ Navegador iniciado")
+    
+    def esperar_login_facebook(self):
+        """Espera a que el usuario inicie sesión en Facebook si es necesario"""
+        print("🔐 Verificando sesión de Facebook...")
+        
+        try:
+            self.driver.get("https://www.facebook.com")
+            time.sleep(3)
+            
+            try:
+                login_elements = self.driver.find_elements(By.XPATH, 
+                    "//input[@name='email' or @name='pass']")
+                
+                if len(login_elements) > 0:
+                    print("\n⚠️  NO HAS INICIADO SESIÓN EN FACEBOOK")
+                    print("=" * 60)
+                    print("Por favor INICIA SESIÓN en Facebook ahora.")
+                    print("Tienes 2 MINUTOS para iniciar sesión.")
+                    print("=" * 60 + "\n")
+                    
+                    timeout = 120
+                    tiempo_transcurrido = 0
+                    
+                    while tiempo_transcurrido < timeout:
+                        time.sleep(5)
+                        tiempo_transcurrido += 5
+                        
+                        try:
+                            login_check = self.driver.find_elements(By.XPATH, 
+                                "//input[@name='email' or @name='pass']")
+                            
+                            if len(login_check) == 0:
+                                print("✅ Sesión iniciada correctamente")
+                                time.sleep(3)
+                                return True
+                            else:
+                                print(f"⏳ Esperando login... ({timeout - tiempo_transcurrido}s restantes)")
+                        except:
+                            print("✅ Sesión iniciada correctamente")
+                            time.sleep(3)
+                            return True
+                    
+                    print("\n❌ Tiempo de espera agotado. No se detectó inicio de sesión.")
+                    return False
+                else:
+                    print("✅ Ya tienes sesión activa en Facebook")
+                    return True
+                    
+            except:
+                print("✅ Ya tienes sesión activa en Facebook")
+                return True
+                
+        except Exception as e:
+            print(f"⚠️  Error verificando sesión: {e}")
+            print("Continuando de todos modos...")
+            return True
     
     def ir_a_marketplace(self):
         """Navega a la página de creación de publicación en Marketplace"""
@@ -65,10 +117,8 @@ class PublicadorMarketplace:
         print(f"📸 Subiendo {len(rutas_imagenes)} imágenes...")
         
         try:
-            # Buscar el input de archivos (está oculto)
             input_archivo = self.driver.find_element(By.CSS_SELECTOR, "input[type='file'][accept*='image']")
             
-            # Subir todas las imágenes a la vez (separadas por \n)
             rutas_concatenadas = "\n".join(rutas_imagenes)
             input_archivo.send_keys(rutas_concatenadas)
             
@@ -83,7 +133,6 @@ class PublicadorMarketplace:
         """Llena el campo de título"""
         print(f"✍️  Título: {titulo}")
         try:
-            # Buscar input con dir="ltr" dentro del label que contiene "Título"
             campo = self.driver.find_element(By.XPATH, "//span[text()='Título']/../..//input[@dir='ltr']")
             campo.clear()
             campo.send_keys(titulo)
@@ -95,29 +144,23 @@ class PublicadorMarketplace:
         return False
     
     def llenar_precio(self, precio):
-        """Llena el campo de precio - ✅ CORREGIDO PARA FORMATO CORRECTO"""
+        """Llena el campo de precio - Formato correcto sin decimales"""
         print(f"💰 Precio original: ${precio}")
         
         try:
-            # ✅ CONVERTIR A FORMATO ENTERO (SIN DECIMALES)
-            # Facebook Marketplace en muchas regiones NO acepta decimales
-            # y si envías "43.00" lo interpreta como "4300"
-            
             try:
                 precio_float = float(precio)
-                precio_entero = int(precio_float)  # Convierte 43.00 → 43
+                precio_entero = int(precio_float)
                 precio_texto = str(precio_entero)
             except:
                 precio_texto = str(precio).replace('.', '').replace(',', '')
             
             print(f"💰 Precio formateado: ${precio_texto}")
             
-            # Buscar input con dir="ltr" dentro del label que contiene "Precio"
             campo = self.driver.find_element(By.XPATH, "//span[text()='Precio']/../..//input[@dir='ltr']")
             campo.clear()
             time.sleep(0.3)
             
-            # ✅ ENVIAR SOLO NÚMEROS, SIN PUNTO NI COMA
             campo.send_keys(precio_texto)
             time.sleep(0.5)
             
@@ -132,12 +175,10 @@ class PublicadorMarketplace:
         """Selecciona la categoría del desplegable"""
         print(f"📁 Categoría: {categoria}")
         try:
-            # Hacer clic en el label de categoría
             label_categoria = self.driver.find_element(By.XPATH, "//span[text()='Categoría']/../..")
             label_categoria.click()
             time.sleep(0.8)
             
-            # Buscar y hacer clic en la opción
             opcion = self.driver.find_element(By.XPATH, f"//span[contains(text(), '{categoria}')]")
             opcion.click()
             time.sleep(0.3)
@@ -151,12 +192,10 @@ class PublicadorMarketplace:
         """Selecciona el estado del artículo"""
         print(f"🏷️  Estado: {estado}")
         try:
-            # Hacer clic en el label de estado
             label_estado = self.driver.find_element(By.XPATH, "//span[text()='Estado']/../..")
             label_estado.click()
             time.sleep(0.8)
             
-            # Buscar y hacer clic en la opción
             opcion = self.driver.find_element(By.XPATH, f"//span[text()='{estado}']")
             opcion.click()
             time.sleep(0.3)
@@ -166,13 +205,11 @@ class PublicadorMarketplace:
             print(f"❌ Error en estado: {e}")
         return False
     
-    def configurar_ubicacion(self, ubicacion_deseada="Mall del Sol, Guayaquil"):
-        """✅ NUEVO: Configura la ubicación del producto"""
+    def configurar_ubicacion(self, ubicacion_deseada="Guayaquil"):
+        """Configura la ubicación seleccionando del dropdown"""
         print(f"📍 Configurando ubicación: {ubicacion_deseada}")
         
         try:
-            # Buscar el campo de ubicación
-            # El campo puede tener diferentes selectores según la versión de Facebook
             selectores_ubicacion = [
                 "//label[contains(., 'Ubicación')]//input",
                 "//span[text()='Ubicación']/../..//input",
@@ -193,39 +230,63 @@ class PublicadorMarketplace:
                 print("⚠️  No se encontró el campo de ubicación")
                 return False
             
-            # Hacer scroll hasta el campo
             self.driver.execute_script(
                 "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
                 campo_ubicacion
             )
             time.sleep(0.8)
             
-            # Limpiar y llenar ubicación
             campo_ubicacion.click()
             time.sleep(0.5)
             
-            # Limpiar campo (puede tener ubicación automática)
-            campo_ubicacion.clear()
+            # Limpiar completamente
+            campo_ubicacion.send_keys(Keys.CONTROL + "a")
+            time.sleep(0.2)
+            campo_ubicacion.send_keys(Keys.DELETE)
             time.sleep(0.3)
             
-            # Escribir nueva ubicación
+            # Escribir ubicación
             campo_ubicacion.send_keys(ubicacion_deseada)
-            time.sleep(2)  # Esperar sugerencias
+            time.sleep(3)  # Esperar que aparezcan sugerencias
             
-            # Presionar Enter o hacer clic en la primera sugerencia
+            # NUEVO: Seleccionar "Guayaquil, Ciudad" del dropdown
             try:
-                # Buscar primera sugerencia en el dropdown
-                primera_sugerencia = self.driver.find_element(By.XPATH, 
-                    "//div[@role='listbox']//div[@role='option'][1]"
-                )
-                primera_sugerencia.click()
-                time.sleep(0.5)
-                print("✅ Ubicación seleccionada de sugerencias")
-            except:
-                # Si no hay sugerencias, presionar Enter
+                # Buscar la opción "Guayaquil" seguida de "Ciudad"
+                opciones_dropdown = [
+                    "//div[@role='listbox']//div[@role='option']//span[contains(text(), 'Guayaquil')]//ancestor::div[@role='option']",
+                    "//div[@role='option' and contains(., 'Guayaquil') and contains(., 'Ciudad')]",
+                    "//div[@role='listbox']//div[@role='option'][1]"  # Primera opción como fallback
+                ]
+                
+                opcion_seleccionada = False
+                for selector_opcion in opciones_dropdown:
+                    try:
+                        opciones = self.driver.find_elements(By.XPATH, selector_opcion)
+                        if opciones:
+                            # Buscar la que contenga "Ciudad"
+                            for opcion in opciones:
+                                texto_opcion = opcion.text.lower()
+                                if 'ciudad' in texto_opcion or 'guayaquil' in texto_opcion:
+                                    opcion.click()
+                                    time.sleep(0.5)
+                                    print(f"✅ Seleccionada ubicación del dropdown: {opcion.text[:50]}")
+                                    opcion_seleccionada = True
+                                    break
+                            
+                            if opcion_seleccionada:
+                                break
+                    except:
+                        continue
+                
+                if not opcion_seleccionada:
+                    print("⚠️  No se pudo seleccionar del dropdown, usando Enter")
+                    campo_ubicacion.send_keys(Keys.RETURN)
+                    time.sleep(0.5)
+                
+            except Exception as e:
+                print(f"⚠️  Error seleccionando dropdown: {e}")
                 campo_ubicacion.send_keys(Keys.RETURN)
                 time.sleep(0.5)
-                print("✅ Ubicación ingresada manualmente")
             
             return True
             
@@ -238,18 +299,14 @@ class PublicadorMarketplace:
         """Llena el campo de descripción"""
         print(f"📝 Accediendo a descripción...")
         try:
-            # Buscar específicamente el textarea de descripción
             campo_descripcion = self.driver.find_element(By.XPATH, "//textarea[@dir='ltr']")
             
-            # Hacer scroll hasta el campo
             self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", campo_descripcion)
             time.sleep(0.8)
             
-            # Hacer clic en el campo
             campo_descripcion.click()
             time.sleep(0.3)
             
-            # Llenar descripción
             print(f"📝 Llenando descripción: {descripcion[:50]}...")
             campo_descripcion.clear()
             campo_descripcion.send_keys(descripcion)
@@ -269,25 +326,20 @@ class PublicadorMarketplace:
             
         print(f"🏷️  Intentando llenar etiquetas: {etiquetas}")
         try:
-            # Hacer scroll para asegurar que el campo esté visible
             time.sleep(0.5)
             
-            # Buscar el input que esté después del texto "Etiquetas de producto"
             campo_etiquetas = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Etiquetas de producto')]/ancestor::div[contains(@class, 'x78zum5')]//input[@dir='ltr']")
             
-            # Hacer scroll y clic
             self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", campo_etiquetas)
             time.sleep(0.5)
             campo_etiquetas.click()
             time.sleep(0.3)
             
-            # Dividir etiquetas por comas y agregarlas una por una
             lista_etiquetas = [e.strip() for e in etiquetas.split(',') if e.strip()]
             
             for etiqueta in lista_etiquetas:
                 campo_etiquetas.send_keys(etiqueta)
                 time.sleep(0.3)
-                # Simular Enter para agregar la etiqueta
                 campo_etiquetas.send_keys(Keys.RETURN)
                 time.sleep(0.3)
             
@@ -306,7 +358,6 @@ class PublicadorMarketplace:
             
         print(f"🔢 SKU: {sku}")
         try:
-            # Buscar el input que esté después del texto "SKU"
             campo_sku = self.driver.find_element(By.XPATH, "//span[contains(text(), 'SKU')]/ancestor::div[contains(@class, 'x78zum5')]//input[@dir='ltr']")
             
             campo_sku.click()
@@ -324,17 +375,14 @@ class PublicadorMarketplace:
     def configurar_disponibilidad(self, disponibilidad, encuentro_publico):
         """Configura disponibilidad y encuentro en lugar público"""
         try:
-            # Marcar encuentro en lugar público
             if encuentro_publico.lower() == "si":
                 print("✅ Marcando encuentro en lugar público")
                 try:
-                    # Buscar el checkbox directamente
                     checkbox = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Encuentro en un lugar público')]/..//input[@type='checkbox']")
                     if not checkbox.is_selected():
                         checkbox.click()
                         time.sleep(0.3)
                 except:
-                    # Intentar hacer clic en el label/contenedor
                     try:
                         contenedor = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Encuentro en un lugar público')]/ancestor::div[@role='button']")
                         contenedor.click()
@@ -351,32 +399,25 @@ class PublicadorMarketplace:
         """Hace clic en el botón Siguiente/Publicar"""
         print("🚀 Publicando artículo...")
         try:
-            # Buscar el botón "Siguiente" por el texto
             boton_siguiente = self.driver.find_element(By.XPATH, "//span[text()='Siguiente']")
             
-            # Hacer scroll hasta el botón para asegurarnos que sea visible
             self.driver.execute_script("arguments[0].scrollIntoView(true);", boton_siguiente)
             time.sleep(0.5)
             
-            # Hacer clic
             boton_siguiente.click()
             time.sleep(1.5)
             
             print("✅ Clic en 'Siguiente' exitoso")
             
-            # Esperar a que aparezca confirmación o la siguiente pantalla
             time.sleep(1)
             
-            # Verificar si llegamos a la página de confirmación o si hay otro paso
             try:
-                # Buscar si hay un botón "Publicar" final
                 boton_publicar = self.driver.find_element(By.XPATH, "//span[text()='Publicar']")
                 if boton_publicar:
                     print("📌 Encontrado botón 'Publicar', haciendo clic...")
                     boton_publicar.click()
                     time.sleep(1)
             except:
-                # No hay botón "Publicar", significa que ya se publicó con "Siguiente"
                 pass
             
             print("✅ Artículo publicado exitosamente")
@@ -385,7 +426,6 @@ class PublicadorMarketplace:
         except Exception as e:
             print(f"❌ Error al publicar: {e}")
             
-            # Intentar tomar screenshot para debug
             try:
                 self.driver.save_screenshot("error_publicacion.png")
                 print("📸 Screenshot guardado en error_publicacion.png")
@@ -395,55 +435,44 @@ class PublicadorMarketplace:
         return False
     
     def publicar_producto_completo(self, datos, imagenes):
-        """Publica un producto completo en Marketplace - ✅ CON CORRECCIONES"""
+        """Publica un producto completo en Marketplace"""
         print("\n" + "="*50)
         print("🎯 INICIANDO PUBLICACIÓN")
         print("="*50 + "\n")
         
-        # Ir a marketplace
+        if not self.esperar_login_facebook():
+            print("❌ No se pudo verificar la sesión de Facebook")
+            return False
+        
         self.ir_a_marketplace()
         time.sleep(1.5)
         
-        # Subir imágenes
         if not self.subir_imagenes(imagenes):
             print("❌ Fallo crítico: No se pudieron subir imágenes")
             return False
         
         time.sleep(1)
         
-        # Llenar campos obligatorios
         self.llenar_titulo(datos.get('titulo', ''))
-        
-        # ✅ PRECIO CORREGIDO
         self.llenar_precio(datos.get('precio', '0'))
-        
         self.seleccionar_categoria(datos.get('categoria', 'Electrónica e informática'))
         self.seleccionar_estado(datos.get('estado', 'Nuevo'))
         
-        # ✅ CONFIGURAR UBICACIÓN
-        ubicacion = datos.get('ubicacion', 'Mall del Sol, Guayaquil')
+        ubicacion = datos.get('ubicacion', 'Guayaquil')
         self.configurar_ubicacion(ubicacion)
         
-        # Llenar descripción
         self.llenar_descripcion(datos.get('descripcion', ''))
-        
-        # Llenar etiquetas
         self.llenar_etiquetas(datos.get('etiquetas', ''))
-        
-        # Llenar SKU
         self.llenar_sku(datos.get('sku', ''))
         
-        # Configurar disponibilidad
         self.configurar_disponibilidad(
             datos.get('disponibilidad', 'Publicar como disponible'),
             datos.get('encuentro_publico', 'Si')
         )
         
-        # Esperar un momento antes de publicar
         print("\n⏳ Esperando 1 segundo antes de publicar...")
         time.sleep(1)
         
-        # Publicar
         exito = self.publicar_articulo()
         
         if exito:

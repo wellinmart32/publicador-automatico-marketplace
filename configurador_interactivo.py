@@ -1,6 +1,7 @@
 import os
 import re
 import configparser
+import shutil
 from compartido.gestor_archivos import contar_articulos
 
 
@@ -46,6 +47,75 @@ class ConfiguradorInteractivo:
         print("=" * 70)
         print()
     
+    def reiniciar_sistema_completo(self):
+        """Reinicia TODO el sistema desde cero"""
+        self.limpiar_pantalla()
+        self.mostrar_header()
+        
+        print("🔄 REINICIAR SISTEMA DESDE CERO\n")
+        print("⚠️  ADVERTENCIA: Esta acción eliminará:\n")
+        print("   ❌ Carpeta ArticulosMarketplace/ (todos los productos)")
+        print("   ❌ Archivo registro_publicaciones.json")
+        print("   ❌ Carpeta perfiles/ (sesiones de Chrome)")
+        print("   ❌ Carpeta backups/")
+        print("\n   ✅ Se mantendrá: config_global.txt\n")
+        print("=" * 70)
+        
+        confirmacion = input("\n¿SEGURO que quieres REINICIAR TODO? (escribe 'SI' en mayúsculas): ")
+        
+        if confirmacion == "SI":
+            print("\n🗑️  Eliminando datos del sistema...\n")
+            
+            elementos_eliminados = 0
+            
+            # Eliminar carpeta ArticulosMarketplace
+            if os.path.exists("ArticulosMarketplace"):
+                try:
+                    shutil.rmtree("ArticulosMarketplace")
+                    print("  ✓ ArticulosMarketplace/ eliminado")
+                    elementos_eliminados += 1
+                except Exception as e:
+                    print(f"  ✗ Error eliminando ArticulosMarketplace/: {e}")
+            
+            # Eliminar registro_publicaciones.json
+            if os.path.exists("registro_publicaciones.json"):
+                try:
+                    os.remove("registro_publicaciones.json")
+                    print("  ✓ registro_publicaciones.json eliminado")
+                    elementos_eliminados += 1
+                except Exception as e:
+                    print(f"  ✗ Error eliminando registro: {e}")
+            
+            # Eliminar carpeta perfiles
+            if os.path.exists("perfiles"):
+                try:
+                    shutil.rmtree("perfiles")
+                    print("  ✓ perfiles/ eliminado")
+                    elementos_eliminados += 1
+                except Exception as e:
+                    print(f"  ✗ Error eliminando perfiles/: {e}")
+            
+            # Eliminar carpeta backups
+            if os.path.exists("backups"):
+                try:
+                    shutil.rmtree("backups")
+                    print("  ✓ backups/ eliminado")
+                    elementos_eliminados += 1
+                except Exception as e:
+                    print(f"  ✗ Error eliminando backups/: {e}")
+            
+            print(f"\n✅ Sistema reiniciado: {elementos_eliminados} elemento(s) eliminado(s)")
+            print("\n💡 Ahora puedes:")
+            print("   • Ejecutar '0_Ejecutar_Todo.bat' para empezar desde cero")
+            print("   • Configurar parámetros antes de ejecutar\n")
+            
+            input("Presiona Enter para continuar...")
+            return True
+        else:
+            print("\n❌ Reinicio cancelado\n")
+            input("Presiona Enter para continuar...")
+            return False
+    
     def cargar_config(self):
         """Carga la configuración actual o crea una nueva"""
         if os.path.exists(self.archivo_config):
@@ -64,7 +134,6 @@ class ConfiguradorInteractivo:
     def guardar_config(self):
         """Guarda la configuración en el archivo"""
         with open(self.archivo_config, 'w', encoding='utf-8') as f:
-            # Escribir encabezado
             f.write("# ============================================================\n")
             f.write("# CONFIGURACIÓN GLOBAL DEL SISTEMA\n")
             f.write("# ============================================================\n\n")
@@ -129,6 +198,7 @@ class ConfiguradorInteractivo:
             
             print("=" * 70)
             print("\n🔧 OPCIONES DE CONFIGURACIÓN:\n")
+            print("  0. 🔄 REINICIAR SISTEMA DESDE CERO")
             print("  1. ⚙️  Configuración General")
             print("  2. 📱 Configuración de Extracción (WhatsApp)")
             print("  3. 🚀 Configuración de Publicación (Marketplace)")
@@ -138,9 +208,11 @@ class ConfiguradorInteractivo:
             print("  7. ❌ Salir sin guardar")
             print("\n" + "=" * 70)
             
-            opcion = input("\n👉 Selecciona una opción (1-7): ").strip()
+            opcion = input("\n👉 Selecciona una opción (0-7): ").strip()
             
-            if opcion == '1':
+            if opcion == '0':
+                self.reiniciar_sistema_completo()
+            elif opcion == '1':
                 self.menu_general()
             elif opcion == '2':
                 self.menu_extraccion()

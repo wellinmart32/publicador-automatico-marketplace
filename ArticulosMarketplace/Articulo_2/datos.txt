@@ -1,9 +1,9 @@
-titulo=Trabajo John
+titulo=EYooso Z - 11 RGB / 60 %
 precio=43
 categoria=Electrónica e informática
 estado=Nuevo
-ubicacion=Mall del Sol, Guayaquil
-descripcion=Marca: E-Yooso | Modelo: Z - 11 | Color: Plomo - Negro
+ubicacion=Guayaquil
+descripcion=Marca: E-Yooso | Modelo: Z - 11 | Color: Plomo - Negro | Modos de Iluminación: 20 Modos | Incluye
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=
