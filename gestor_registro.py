@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class GestorRegistro:
-    """Gestiona el registro de publicaciones (registro_publicaciones.json)"""
+    """Gestiona el registro de publicaciones y el índice del catálogo de WhatsApp"""
     
     def __init__(self, archivo_registro="registro_publicaciones.json"):
         self.archivo_registro = archivo_registro
@@ -15,7 +15,11 @@ class GestorRegistro:
         if os.path.exists(self.archivo_registro):
             try:
                 with open(self.archivo_registro, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                    registro = json.load(f)
+                    # Asegurar que exista el campo indice_catalogo_whatsapp
+                    if 'indice_catalogo_whatsapp' not in registro:
+                        registro['indice_catalogo_whatsapp'] = 0
+                    return registro
             except Exception as e:
                 print(f"⚠️  Error cargando registro: {e}")
                 return self._crear_registro_vacio()
@@ -33,7 +37,8 @@ class GestorRegistro:
             "errores": [],
             "publicaciones_hoy": 0,
             "fecha_ultima_publicacion": None,
-            "ultima_ejecucion": None
+            "ultima_ejecucion": None,
+            "indice_catalogo_whatsapp": 0
         }
     
     def guardar_registro(self):
@@ -54,6 +59,18 @@ class GestorRegistro:
         """Obtiene la lista de artículos pendientes de publicar"""
         return self.registro.get('pendientes', [])
     
+    def obtener_indice_catalogo(self):
+        """Obtiene el índice actual del catálogo de WhatsApp"""
+        return self.registro.get('indice_catalogo_whatsapp', 0)
+    
+    def actualizar_indice_catalogo(self, cantidad_extraida):
+        """Actualiza el índice del catálogo después de extraer productos"""
+        indice_actual = self.registro.get('indice_catalogo_whatsapp', 0)
+        nuevo_indice = indice_actual + cantidad_extraida
+        self.registro['indice_catalogo_whatsapp'] = nuevo_indice
+        self.guardar_registro()
+        print(f"📌 Índice del catálogo actualizado: {indice_actual} → {nuevo_indice}")
+    
     def registrar_extraccion(self, articulo, titulo, precio, descripcion):
         """Registra un producto extraído de WhatsApp"""
         entrada = {
@@ -67,8 +84,16 @@ class GestorRegistro:
             "url_marketplace": None
         }
         
-        # Agregar al historial
-        self.registro['historial'].append(entrada)
+        # Actualizar o agregar al historial
+        actualizado = False
+        for entrada_existente in self.registro['historial']:
+            if entrada_existente['articulo'] == articulo:
+                entrada_existente.update(entrada)
+                actualizado = True
+                break
+        
+        if not actualizado:
+            self.registro['historial'].append(entrada)
         
         # Agregar a pendientes si no está
         if articulo not in self.registro['pendientes']:
@@ -142,11 +167,11 @@ class GestorRegistro:
         print(f"❌ Error registrado: Articulo_{articulo} - {error}")
     
     def resetear_contador_diario(self):
-        """Resetea el contador de publicaciones diarias (llamar cada día)"""
+        """Resetea SOLO el contador de publicaciones diarias (NO todo el registro)"""
         fecha_actual = datetime.now().strftime("%Y-%m-%d")
         fecha_ultima = self.registro.get('fecha_ultima_publicacion', '')
         
-        # Si es un día diferente, resetear
+        # Si es un día diferente, resetear SOLO publicaciones_hoy
         if fecha_ultima and not fecha_ultima.startswith(fecha_actual):
             self.registro['publicaciones_hoy'] = 0
             self.guardar_registro()
@@ -163,6 +188,7 @@ class GestorRegistro:
         total_publicados = self.registro['total_publicados']
         total_pendientes = len(self.registro['pendientes'])
         total_errores = len(self.registro['errores'])
+        indice_catalogo = self.registro.get('indice_catalogo_whatsapp', 0)
         
         return {
             'total_extraidos': total_extraidos,
@@ -170,7 +196,8 @@ class GestorRegistro:
             'total_pendientes': total_pendientes,
             'total_errores': total_errores,
             'publicaciones_hoy': self.registro['publicaciones_hoy'],
-            'ultimo_publicado': self.registro['ultimo_articulo_publicado']
+            'ultimo_publicado': self.registro['ultimo_articulo_publicado'],
+            'indice_catalogo': indice_catalogo
         }
     
     def mostrar_estadisticas(self):
@@ -186,6 +213,7 @@ class GestorRegistro:
         print(f"❌ Errores:              {stats['total_errores']}")
         print(f"📅 Publicados hoy:       {stats['publicaciones_hoy']}")
         print(f"🔢 Último publicado:     Articulo_{stats['ultimo_publicado']}")
+        print(f"📌 Índice catálogo:      Producto {stats['indice_catalogo']} del catálogo de WhatsApp")
         print("="*50 + "\n")
     
     def limpiar_registro(self):
@@ -239,6 +267,7 @@ def main():
     print("Ejemplo de uso:")
     print("gestor.registrar_extraccion(1, 'Teclado RGB', '45.00', 'Descripcion...')")
     print("gestor.registrar_publicacion_exitosa(1)")
+    print("gestor.actualizar_indice_catalogo(5)  # Después de extraer 5 productos")
 
 
 if __name__ == "__main__":

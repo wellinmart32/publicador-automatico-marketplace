@@ -6,7 +6,7 @@ import time
 
 
 def main():
-    """Script para extraer productos del catálogo de WhatsApp - CON CONTINUACIÓN INTELIGENTE"""
+    """Script para extraer productos del catálogo de WhatsApp - CON ÍNDICE DEL CATÁLOGO"""
     
     print("\n" + "="*60)
     print("📱 EXTRACTOR DE CATÁLOGO DE WHATSAPP")
@@ -24,47 +24,41 @@ def main():
     # Inicializar gestor de registro
     gestor = GestorRegistro()
     
-    # Determinar desde qué artículo comenzar - LÓGICA MEJORADA
+    # Obtener índice actual del catálogo de WhatsApp
+    indice_catalogo = gestor.obtener_indice_catalogo()
+    
+    # Determinar desde qué artículo (carpeta) comenzar
     articulo_inicio = 1
     total_carpetas = contar_articulos()
     
     if gestor.registro['pendientes']:
         # Si hay pendientes, extraer desde el mínimo pendiente
         articulo_inicio = min(gestor.registro['pendientes'])
-        print(f"📦 Hay artículos pendientes, continuando desde Articulo_{articulo_inicio}\n")
+        print(f"📦 Hay artículos pendientes, continuando desde Articulo_{articulo_inicio}")
         
     elif gestor.registro['ultimo_articulo_publicado'] > 0:
-        # Verificar si ya están todos extraídos
-        total_extraidos = len(gestor.registro['historial'])
-        
-        # Si ya se extrajeron productos y no hay pendientes, salir
-        if total_extraidos >= total_carpetas and len(gestor.registro['pendientes']) == 0:
-            print(f"\n✅ Todos los artículos ya están extraídos y publicados")
-            print(f"   Total extraídos: {total_extraidos}")
-            print(f"   Total publicados: {gestor.registro['total_publicados']}")
-            print(f"\n💡 Para re-extraer productos nuevos:")
-            print(f"   1. Ejecuta '1_Crear_Estructura.bat' para limpiar")
-            print(f"   2. O aumenta 'cantidad_productos' en '4_Configurador.bat'\n")
-            input("Presiona Enter para salir...")
-            return
-        
-        # Continuar desde el siguiente al último publicado
+        # Continuar desde el siguiente al último publicado (rotación de carpetas)
         articulo_inicio = gestor.registro['ultimo_articulo_publicado'] + 1
         
-        # Si excede el total, volver a 1 (rotación)
+        # Si excede el total de carpetas, volver a 1
         if articulo_inicio > total_carpetas:
             articulo_inicio = 1
-            print(f"🔄 Rotación completada, reiniciando desde Articulo_1\n")
+            print(f"🔄 Rotación de carpetas: volviendo a Articulo_1")
         else:
-            print(f"➡️  Continuando desde Articulo_{articulo_inicio}\n")
+            print(f"➡️  Continuando desde Articulo_{articulo_inicio}")
     else:
-        print(f"🆕 Primera extracción, comenzando desde Articulo_1\n")
+        print(f"🆕 Primera extracción")
+    
+    # Mostrar información del catálogo
+    print(f"\n📌 ÍNDICE DEL CATÁLOGO DE WHATSAPP:")
+    print(f"   Último producto extraído: {indice_catalogo}")
+    print(f"   Próximo producto a extraer: {indice_catalogo + 1}")
     
     # Mostrar configuración
-    print("⚙️  CONFIGURACIÓN AUTOMÁTICA:\n")
+    print(f"\n⚙️  CONFIGURACIÓN AUTOMÁTICA:")
     print(f"   📱 Contacto WhatsApp: {config['contacto_whatsapp']}")
     print(f"   📦 Productos a extraer: {config['productos_por_extraccion']}")
-    print(f"   🎯 Artículo inicial: {articulo_inicio}")
+    print(f"   🎯 Guardar en carpetas: Articulo_{articulo_inicio} - Articulo_{articulo_inicio + config['productos_por_extraccion'] - 1}")
     print(f"   📜 Auto scroll: {config['auto_scroll']} veces")
     print(f"   🚀 Auto publicar: {'Sí' if config['auto_publicar'] else 'No'}")
     
@@ -88,10 +82,13 @@ def main():
     
     try:
         print("🌐 Iniciando navegador y conectando a WhatsApp Web...")
+        
+        # Extraer productos desde el índice del catálogo
         productos_extraidos = extractor.ejecutar(
-            config['contacto_whatsapp'], 
-            config['productos_por_extraccion'],
-            articulo_inicio
+            nombre_contacto=config['contacto_whatsapp'],
+            cantidad_productos=config['productos_por_extraccion'],
+            articulo_inicio=articulo_inicio,
+            indice_inicio_catalogo=indice_catalogo  # Comenzar desde aquí en el catálogo
         )
         
         # Registrar productos extraídos
@@ -105,6 +102,12 @@ def main():
                     precio=producto.get('precio', '0'),
                     descripcion=producto.get('descripcion', '')
                 )
+            
+            # Actualizar índice del catálogo
+            gestor.actualizar_indice_catalogo(len(productos_extraidos))
+            
+            print(f"\n✅ Se extrajeron {len(productos_extraidos)} productos del catálogo")
+            print(f"   Nuevo índice del catálogo: {gestor.obtener_indice_catalogo()}")
         
         # Mostrar estadísticas
         gestor.mostrar_estadisticas()

@@ -160,19 +160,21 @@ class ExtractorWhatsApp:
             print("⚠️  No se pudieron contar los productos")
             return 0
     
-    def extraer_productos(self, cantidad_maxima=5, articulo_inicio=1):
-        """Extrae productos y los guarda desde articulo_inicio"""
+    def extraer_productos(self, cantidad_maxima=5, articulo_inicio=1, indice_inicio_catalogo=0):
+        """Extrae productos desde un índice específico del catálogo"""
         print(f"\n🎯 Iniciando extracción de hasta {cantidad_maxima} productos...")
-        print(f"   Guardando desde Articulo_{articulo_inicio} hasta Articulo_{articulo_inicio + cantidad_maxima - 1}\n")
+        print(f"   Guardando en: Articulo_{articulo_inicio} hasta Articulo_{articulo_inicio + cantidad_maxima - 1}")
+        print(f"   Desde producto {indice_inicio_catalogo + 1} del catálogo de WhatsApp\n")
         
         productos_extraidos = []
-        indice_real = 0
+        indice_real = indice_inicio_catalogo
         
         for i in range(cantidad_maxima):
             numero_articulo = articulo_inicio + i
             
             print(f"\n{'='*60}")
-            print(f"📦 PRODUCTO {i + 1}/{cantidad_maxima} → GUARDANDO EN ARTICULO_{numero_articulo}")
+            print(f"📦 PRODUCTO {i + 1}/{cantidad_maxima} → ARTICULO_{numero_articulo}")
+            print(f"   (Producto {indice_real + 1} del catálogo de WhatsApp)")
             print(f"{'='*60}")
             
             try:
@@ -194,7 +196,8 @@ class ExtractorWhatsApp:
                         pass
                 
                 if indice_real >= len(productos_reales):
-                    print(f"[INFO] Solo hay {len(productos_reales)} productos disponibles")
+                    print(f"[INFO] Solo hay {len(productos_reales)} productos en el catálogo")
+                    print(f"       Has llegado al final. Considera rotar al inicio.")
                     break
                 
                 producto_item = productos_reales[indice_real]
@@ -236,21 +239,20 @@ class ExtractorWhatsApp:
         return productos_extraidos
     
     def expandir_leer_mas_agresivo(self):
-        """Estrategia AGRESIVA para expandir TODO el contenido oculto"""
+        """Expande descripción completa - SELECTORES CORREGIDOS"""
         print("📖 Expandiendo descripción completa...")
         
-        # Estrategia 1: Buscar y hacer clic en TODOS los botones visibles
         max_intentos_globales = 5
         botones_clickeados = 0
         
         for intento_global in range(max_intentos_globales):
             try:
-                # Múltiples selectores para encontrar el botón
+                # SELECTORES CORREGIDOS basados en el HTML real
                 selectores = [
-                    "//span[@role='button' and contains(text(), 'Leer más')]",
-                    "//span[contains(text(), 'Leer más')]",
-                    "//div[@role='button']//span[contains(text(), 'Leer más')]",
-                    "//*[contains(text(), 'Leer más') and (@role='button' or parent::*[@role='button'])]"
+                    "//span[@class='x1ph7ams']",  # Selector por clase específica
+                    "//span[contains(text(), 'Leer más')]",  # Selector por texto
+                    "//span[@class='x1ph7ams' and contains(text(), 'Leer más')]",  # Combinado
+                    "//div[contains(@class, 'x1f6kntn')]//span[contains(text(), 'Leer más')]"  # Con contexto
                 ]
                 
                 boton_encontrado = False
@@ -258,7 +260,7 @@ class ExtractorWhatsApp:
                 for selector in selectores:
                     try:
                         botones = self.driver.find_elements(By.XPATH, selector)
-                        print(f"  [Intento {intento_global + 1}] Encontrados {len(botones)} botones con selector")
+                        print(f"  [Intento {intento_global + 1}] Selector: {selector[:50]}... → {len(botones)} botón(es)")
                         
                         for idx, boton in enumerate(botones):
                             try:
@@ -300,7 +302,6 @@ class ExtractorWhatsApp:
                     print(f"  ⚠️  No se encontraron más botones 'Leer más'")
                     break
                 
-                # Pequeña espera entre intentos
                 time.sleep(1)
                 
             except Exception as e:
@@ -308,7 +309,7 @@ class ExtractorWhatsApp:
                 break
         
         print(f"✅ Expansión completada: {botones_clickeados} botón(es) clickeado(s)")
-        time.sleep(3)  # Espera final para que cargue todo
+        time.sleep(3)
         
         return botones_clickeados > 0
     
@@ -422,7 +423,7 @@ class ExtractorWhatsApp:
             except:
                 producto['precio'] = "0"
             
-            # EXPANDIR DESCRIPCIÓN - Estrategia agresiva
+            # Expandir descripción - CON SELECTORES CORREGIDOS
             self.expandir_leer_mas_agresivo()
             
             # Extraer descripción completa
@@ -534,7 +535,7 @@ sku="""
         except:
             return False
     
-    def ejecutar(self, nombre_contacto, cantidad_productos=5, articulo_inicio=1):
+    def ejecutar(self, nombre_contacto, cantidad_productos=5, articulo_inicio=1, indice_inicio_catalogo=0):
         """Ejecuta el proceso completo de extracción"""
         print("\n" + "="*60)
         print("🚀 EXTRACTOR DE WHATSAPP")
@@ -559,7 +560,7 @@ sku="""
             self.hacer_scroll_catalogo(veces=5)
             self.contar_productos_catalogo()
             
-            productos = self.extraer_productos(cantidad_productos, articulo_inicio)
+            productos = self.extraer_productos(cantidad_productos, articulo_inicio, indice_inicio_catalogo)
             
             print("\n" + "="*60)
             print(f"✅ EXTRACCIÓN COMPLETADA - {len(productos)} productos")

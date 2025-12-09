@@ -104,31 +104,34 @@ def main():
     gestor.mostrar_estadisticas()
     
     # Determinar qué publicar
+    total_articulos = contar_articulos()
+    articulos_a_publicar = []
+    
     if config['publicar_todos']:
         # MODO: Publicar todos los artículos disponibles
-        total_articulos = contar_articulos()
-        
-        if total_articulos == 0:
-            print("❌ No hay artículos disponibles.")
-            input("\nPresiona Enter para salir...")
-            return
-        
         print(f"📦 MODO: Publicar todos los artículos")
         print(f"   Total disponibles: {total_articulos}")
         print(f"   Límite diario restante: {config['max_publicaciones_por_dia'] - gestor.registro['publicaciones_hoy']}")
         
-        # Obtener pendientes o empezar desde el siguiente
+        # Obtener pendientes
         pendientes = gestor.obtener_articulos_pendientes()
         
         if pendientes:
             print(f"\n⏳ Artículos pendientes: {pendientes}")
+            # Limitar por el máximo diario
             articulos_a_publicar = pendientes[:config['max_publicaciones_por_dia'] - gestor.registro['publicaciones_hoy']]
         else:
-            # Publicar desde el siguiente artículo
-            siguiente = gestor.obtener_siguiente_articulo()
-            articulos_a_publicar = list(range(siguiente, min(siguiente + config['max_publicaciones_por_dia'] - gestor.registro['publicaciones_hoy'], total_articulos + 1)))
+            print(f"\n✅ No hay artículos pendientes de publicar")
+            articulos_a_publicar = []
         
-        print(f"\n🎯 Se publicarán los artículos: {articulos_a_publicar}")
+        if articulos_a_publicar:
+            print(f"\n🎯 Se publicarán los artículos: {articulos_a_publicar}")
+        else:
+            print(f"\n⚠️  No hay artículos para publicar")
+            print(f"   • Si acabas de extraer, verifica que se hayan registrado correctamente")
+            print(f"   • Si ya publicaste todo, ejecuta de nuevo para extraer más productos")
+            input("\nPresiona Enter para salir...")
+            return
         
     else:
         # MODO: Publicar solo el siguiente artículo

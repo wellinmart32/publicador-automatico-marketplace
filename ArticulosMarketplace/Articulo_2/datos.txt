@@ -1,9 +1,10 @@
-titulo=EYooso Z - 11 RGB / 60 %
-precio=43
+titulo=Razer BlackShark V2 X
+precio=69
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Marca: E-Yooso | Modelo: Z - 11 | Color: Plomo - Negro | Modos de Iluminación: 20 Modos | Incluye
+descripcion=Marca: Razer | Modelo: BlackShark V2 X | Color: Negro | Tipo de interfaz: Conector de audio de 3,5 mm | Controlador externo de Volumen | Boton de Silenciador de Microfono | Ofrece mayor captación de voz y cancelación de ruido, tiene una carcasa de micrófono optimizada. | Cancelación de ruido pasiva avanzada.
+Micrófono cardioide hiperclaro Razer™. | Acolchado más grueso y almohadillas de espuma | Compatibilidad multiplataforma. PC, Mac, PS4, Xbox One, Nintendo Switch y dispositivos moviles.
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

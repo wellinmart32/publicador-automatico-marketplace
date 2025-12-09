@@ -1,9 +1,9 @@
-titulo=EYooso Z - 11 RGB / 60 %
-precio=43
+titulo=Plomo - Cuero PU
+precio=11
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo | Modos de Iluminación: 20 Modos | Incluye
+descripcion=Color: Plomo | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

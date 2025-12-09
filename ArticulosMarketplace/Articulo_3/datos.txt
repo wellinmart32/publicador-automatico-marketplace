@@ -1,9 +1,9 @@
-titulo=EYooso Z - 686 RGB / INALAMBRICO 65 %
-precio=55
+titulo=E-Yooso | X11 PRO | Negro
+precio=34
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Marca: E-Yooso | Modelo: Z - 686 INALAMBRICO | Color: Blanco | Tipo de interfaz: USB | Modos de Il
+descripcion=Conectividad avanzada: Funciona por Bluetooth, conexión inalámbrica 2.4 GHz o cable Tipo-C - Permite conectar hasta 3 dispositivos y cambiar entre ellos fácilmente. | Diseño ergonómico y ligero: Estructura cómoda con agarre texturizado que mejora el control y reduce la fatiga durante largas sesiones. | Botones programables: 9 botones configurables mediante software - Ideal para personalizar acciones, accesos rápidos o combinaciones de teclas según tu estilo de juego o trabajo. | Velocidad ajustable: Rango DPI de 800 a 8000 con 5 niveles configurables - Velocidad de respuesta de hasta 1000 Hz y aceleración de 15 G para máxima precisión. | Iluminación RGB: 6 efectos personalizables (color fijo, arco iris, respiración, apagado, etc.) - Ajusta colores y modos desde el software del mouse. | Batería recargable de 1000 mAh: Hasta 40 horas de uso continuo (75 horas con luz apagada) - Se carga por completo en 1.5 horas y puede utilizarse mientras está conectado. | Material premium: Revestimiento antideslizante con textura de goma - Superficie lisa y resistente a huellas para un mejor agarre. | Compatibilidad: Windows - macOS - iOS - Android - Linux - PS4 - PS5 - Xbox - PC - Laptop - Tablet.
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

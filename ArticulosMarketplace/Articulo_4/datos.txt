@@ -1,9 +1,9 @@
-titulo=Cafe - Cuero PU
-precio=11
+titulo=Cleaning Kit 20 en 1
+precio=12
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Color: Cafe | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm
+descripcion=Ideal para mantener sus dispositivos electrónicos en condiciones de primera categoría. | Limpieza segura: El kit Clean G está diseñado para proporcionar una limpieza suave pero completa, asegurando que sus delicados aparatos electrónicos permanezcan ilesos durante el proceso de limpieza.
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

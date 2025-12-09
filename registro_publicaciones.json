@@ -1,61 +1,69 @@
 {
   "ultimo_articulo_publicado": 5,
-  "total_publicados": 5,
+  "total_publicados": 9,
   "historial": [
     {
       "articulo": 1,
-      "titulo": "EYooso Z - 11 RGB / 60 %",
-      "precio": "43",
-      "descripcion": "Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo | Modos de Iluminación: 20 Modos | Incluye",
-      "fecha_extraccion": "2025-12-08 21:51:38",
-      "fecha_publicacion": "2025-12-08 21:53:23",
+      "titulo": "Plomo - Cuero PU",
+      "precio": "11",
+      "descripcion": "Color: Plomo | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm",
+      "fecha_extraccion": "2025-12-09 01:12:58",
+      "fecha_publicacion": "2025-12-09 01:13:43",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 2,
-      "titulo": "EYooso Z - 11 RGB / 60 %",
-      "precio": "43",
-      "descripcion": "Marca: E-Yooso | Modelo: Z - 11 | Color: Plomo - Negro | Modos de Iluminación: 20 Modos | Incluye",
-      "fecha_extraccion": "2025-12-08 21:51:38",
-      "fecha_publicacion": "2025-12-08 21:54:05",
+      "titulo": "Razer BlackShark V2 X",
+      "precio": "69",
+      "descripcion": "Marca: Razer | Modelo: BlackShark V2 X | Color: Negro | Tipo de interfaz: Conector de audio de 3,5 m...",
+      "fecha_extraccion": "2025-12-09 01:12:58",
+      "fecha_publicacion": "2025-12-09 01:14:31",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 3,
-      "titulo": "EYooso Z - 686 RGB / INALAMBRICO 65 %",
-      "precio": "55",
-      "descripcion": "Marca: E-Yooso | Modelo: Z - 686 INALAMBRICO | Color: Blanco | Tipo de interfaz: USB | Modos de Il",
-      "fecha_extraccion": "2025-12-08 21:51:38",
-      "fecha_publicacion": "2025-12-08 21:54:54",
+      "titulo": "E-Yooso | X11 PRO | Negro",
+      "precio": "34",
+      "descripcion": "Conectividad avanzada: Funciona por Bluetooth, conexión inalámbrica 2.4 GHz o cable Tipo-C - Permite...",
+      "fecha_extraccion": "2025-12-09 01:12:58",
+      "fecha_publicacion": "2025-12-09 01:15:24",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 4,
-      "titulo": "Cafe - Cuero PU",
-      "precio": "11",
-      "descripcion": "Color: Cafe | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm",
-      "fecha_extraccion": "2025-12-08 21:51:38",
-      "fecha_publicacion": "2025-12-08 21:55:45",
+      "titulo": "Cleaning Kit 20 en 1",
+      "precio": "12",
+      "descripcion": "Ideal para mantener sus dispositivos electrónicos en condiciones de primera categoría. | Limpieza se...",
+      "fecha_extraccion": "2025-12-09 01:12:58",
+      "fecha_publicacion": "2025-12-09 01:16:08",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     },
     {
       "articulo": 5,
-      "titulo": "Negro - Cuero PU",
-      "precio": "11",
-      "descripcion": "Color: Negro | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm",
-      "fecha_extraccion": "2025-12-08 21:51:38",
-      "fecha_publicacion": "2025-12-08 21:56:32",
+      "titulo": "Morado - Celeste",
+      "precio": "15",
+      "descripcion": "KeyCaps: 106 teclas | Marca: Yiqi Technology | Modelo: PBT2-23 | Color: Morado/Celeste | Material: P...",
+      "fecha_extraccion": "2025-12-09 01:12:58",
+      "fecha_publicacion": "2025-12-09 01:16:51",
       "estado": "publicado_exitosamente",
       "url_marketplace": null
     }
   ],
   "pendientes": [],
-  "errores": [],
-  "publicaciones_hoy": 5,
-  "fecha_ultima_publicacion": "2025-12-08 21:56:32",
-  "ultima_ejecucion": "2025-12-08 21:56:32"
+  "errores": [
+    {
+      "articulo": 1,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "error": "Error en publicación",
+      "fecha": "2025-12-09 00:52:22"
+    }
+  ],
+  "publicaciones_hoy": 9,
+  "fecha_ultima_publicacion": "2025-12-09 01:16:51",
+  "ultima_ejecucion": "2025-12-09 01:16:51",
+  "indice_catalogo_whatsapp": 10
 }

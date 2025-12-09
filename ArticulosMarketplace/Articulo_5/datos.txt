@@ -1,9 +1,9 @@
-titulo=Negro - Cuero PU
-precio=11
+titulo=Morado - Celeste
+precio=15
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Color: Negro | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm
+descripcion=KeyCaps: 106 teclas | Marca: Yiqi Technology | Modelo: PBT2-23 | Color: Morado/Celeste | Material: PBT y Double Shot
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=
