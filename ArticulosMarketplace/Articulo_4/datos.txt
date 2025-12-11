@@ -1,9 +1,9 @@
-titulo=Cleaning Kit 20 en 1
-precio=12
+titulo=E-Yooso | Z686 RGB 65% | Negro
+precio=45
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Ideal para mantener sus dispositivos electrónicos en condiciones de primera categoría. | Eliminación eficaz del polvo: Equipado con cepillos especializados y paños de microfibra, este kit de limpieza múltiple elimina eficazmente el polvo, la suciedad y los residuos de diversas superficies sin causar ningún daño. | Limpieza segura: El kit Clean G está diseñado para proporcionar una limpieza suave pero completa, asegurando que sus delicados aparatos electrónicos permanezcan ilesos durante el proceso de limpieza. | Diseño ergonómico: Cada herramienta de limpieza está cuidadosamente diseñada teniendo en cuenta la ergonomía, ofreciendo un agarre cómodo y una capacidad de limpieza precisa incluso en zonas de difícil acceso.
+descripcion=E-Yooso | Z686 RGB 65% | Negro
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

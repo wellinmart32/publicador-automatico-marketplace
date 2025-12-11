@@ -1,9 +1,9 @@
-titulo=Morado - Celeste
-precio=15
+titulo=EYooso Z - 11 RGB / 60 %
+precio=43
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=KeyCaps: 106 teclas | Marca: Yiqi Technology | Modelo: PBT2-23 | Color: Morado/Celeste | Material: PBT y Double Shot
+descripcion=Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo | Modos de Iluminación: 20 Modos | Incluye la Velocidad de efecto del Modo | Incluye Intensidad de Brillo | Tipo de interfaz: USB | Estándar del teclado: 61 teclas de Inyección de disparo doble. | Teclado retroiluminado: RGB | Material: PBT
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

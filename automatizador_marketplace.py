@@ -88,8 +88,12 @@ def main():
     # Crear estructura si no existe
     crear_estructura_carpetas()
     
-    # Inicializar gestor de registro
+    # CRÍTICO: Recargar el gestor DESPUÉS de cualquier operación previa
+    # Esto asegura que tengamos los datos MÁS RECIENTES del JSON
     gestor = GestorRegistro()
+    gestor.registro = gestor.cargar_registro()  # Forzar recarga del archivo
+    
+    print("🔄 Registro recargado desde archivo")
     
     # Verificar límite diario
     if not gestor.puede_publicar_hoy(config['max_publicaciones_por_dia']):
@@ -130,6 +134,15 @@ def main():
             print(f"\n⚠️  No hay artículos para publicar")
             print(f"   • Si acabas de extraer, verifica que se hayan registrado correctamente")
             print(f"   • Si ya publicaste todo, ejecuta de nuevo para extraer más productos")
+            
+            # DEBUG: Mostrar el contenido del registro para diagnóstico
+            print(f"\n🔍 DEBUG - Estado del registro:")
+            print(f"   Pendientes en registro: {gestor.registro['pendientes']}")
+            print(f"   Último publicado: {gestor.registro.get('ultimo_articulo_publicado', 0)}")
+            print(f"   Historial (últimos 3):")
+            for entrada in gestor.registro['historial'][-3:]:
+                print(f"     - Articulo {entrada['articulo']}: {entrada['estado']}")
+            
             input("\nPresiona Enter para salir...")
             return
         

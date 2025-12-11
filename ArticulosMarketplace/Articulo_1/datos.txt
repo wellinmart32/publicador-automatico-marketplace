@@ -1,9 +1,9 @@
-titulo=Plomo - Cuero PU
-precio=11
+titulo=Naranja - Negro
+precio=15
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Color: Plomo | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm
+descripcion=KeyCaps: 106 teclas | Marca: Yiqi Technology | Modelo: PBT2-46 | Color: Naranja/Negro | Material: PBT y Double Shot
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=
