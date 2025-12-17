@@ -1,62 +1,75 @@
 {
-  "ultimo_articulo_publicado": 5,
-  "total_publicados": 10,
+  "ultimo_articulo_publicado": 0,
+  "total_publicados": 0,
   "historial": [
     {
       "articulo": 1,
-      "titulo": "Plomo - Cuero PU",
-      "precio": "11",
-      "descripcion": "Color: Plomo | Material: Cuero de la PU | Ancho: 35 cm | Largo: 70 cm",
-      "fecha_extraccion": "2025-12-09 15:50:56",
-      "fecha_publicacion": "2025-12-09 15:51:53",
-      "estado": "publicado_exitosamente",
+      "titulo": "Sin título",
+      "precio": "65",
+      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
+      "fecha_extraccion": "2025-12-16 01:17:50",
+      "fecha_publicacion": null,
+      "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 2,
-      "titulo": "Razer BlackShark V2 X",
-      "precio": "69",
-      "descripcion": "Marca: Razer | Modelo: BlackShark V2 X | Color: Negro | Tipo de interfaz: Conector de audio de 3,5 m...",
-      "fecha_extraccion": "2025-12-09 15:50:56",
-      "fecha_publicacion": "2025-12-09 15:52:46",
-      "estado": "publicado_exitosamente",
+      "titulo": "Sin título",
+      "precio": "45",
+      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
+      "fecha_extraccion": "2025-12-16 01:17:50",
+      "fecha_publicacion": null,
+      "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 3,
-      "titulo": "E-Yooso | X11 PRO | Negro",
-      "precio": "34",
-      "descripcion": "Conectividad avanzada: Funciona por Bluetooth, conexión inalámbrica 2.4 GHz o cable Tipo-C - Permite...",
-      "fecha_extraccion": "2025-12-09 15:50:56",
-      "fecha_publicacion": "2025-12-09 15:53:53",
-      "estado": "publicado_exitosamente",
+      "titulo": "Sin título",
+      "precio": "43",
+      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
+      "fecha_extraccion": "2025-12-16 01:17:50",
+      "fecha_publicacion": null,
+      "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 4,
-      "titulo": "Cleaning Kit 20 en 1",
-      "precio": "12",
-      "descripcion": "Ideal para mantener sus dispositivos electrónicos en condiciones de primera categoría. | Eliminación...",
-      "fecha_extraccion": "2025-12-09 15:50:56",
-      "fecha_publicacion": "2025-12-09 15:54:50",
-      "estado": "publicado_exitosamente",
+      "titulo": "Sin título",
+      "precio": "43",
+      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
+      "fecha_extraccion": "2025-12-16 01:17:50",
+      "fecha_publicacion": null,
+      "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 5,
-      "titulo": "Morado - Celeste",
-      "precio": "15",
-      "descripcion": "KeyCaps: 106 teclas | Marca: Yiqi Technology | Modelo: PBT2-23 | Color: Morado/Celeste | Material: P...",
-      "fecha_extraccion": "2025-12-09 15:50:56",
-      "fecha_publicacion": "2025-12-09 15:55:33",
-      "estado": "publicado_exitosamente",
+      "titulo": "Sin título",
+      "precio": "34",
+      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
+      "fecha_extraccion": "2025-12-16 01:17:50",
+      "fecha_publicacion": null,
+      "estado": "extraido_pendiente",
       "url_marketplace": null
     }
   ],
-  "pendientes": [],
-  "errores": [],
+  "pendientes": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "errores": [
+    {
+      "articulo": 1,
+      "titulo": "Sin título",
+      "error": "('Connection aborted.', ConnectionResetError(10054, 'Se ha forzado la interrupción de una conexión existente por el host remoto', None, 10054, None))",
+      "fecha": "2025-12-11 02:53:23"
+    }
+  ],
   "publicaciones_hoy": 0,
-  "fecha_ultima_publicacion": "2025-12-09 15:55:33",
-  "ultima_ejecucion": "2025-12-09 15:55:33",
-  "indice_catalogo_whatsapp": 10
+  "fecha_ultima_publicacion": null,
+  "ultima_ejecucion": "2025-12-16 01:17:50",
+  "indice_catalogo_whatsapp": 28
 }

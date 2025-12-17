@@ -80,7 +80,7 @@ def main():
     
     print("="*60 + "\n")
     
-    # Countdown automático sin pedir Enter
+    # Countdown automático
     print("⏳ Iniciando automáticamente en 3 segundos...")
     print("   (Presiona Ctrl+C para cancelar)\n")
     
@@ -126,23 +126,19 @@ def main():
     
     # FASE 3: Publicación (si aplica)
     if modo in ['completo', 'solo_publicar']:
-        # Verificar si debe publicar automáticamente
         if modo == 'completo' and not config['auto_publicar']:
             print("\n" + "="*60)
             print("⏭️  PUBLICACIÓN AUTOMÁTICA DESACTIVADA")
             print("="*60)
             print("\n💡 Para publicar, ejecuta '3_Publicar_Marketplace.bat'")
-            print("   O activa 'auto_publicar' en '4_Configurador.bat'")
         else:
             print("\n" + "="*60)
             print("🚀 FASE 3: PUBLICACIÓN EN MARKETPLACE")
             print("="*60 + "\n")
             
-            # Verificar límite diario
             if not gestor.puede_publicar_hoy(config['max_publicaciones_por_dia']):
                 print(f"⚠️  LÍMITE DIARIO ALCANZADO")
                 print(f"   Ya publicaste {gestor.registro['publicaciones_hoy']} productos hoy")
-                print(f"   Límite: {config['max_publicaciones_por_dia']}")
             else:
                 ejecutar_script(
                     "automatizador_marketplace.py",
@@ -159,7 +155,6 @@ def main():
     
     print("💡 Próxima ejecución:")
     print("   • Ejecuta '0_Ejecutar_Todo.bat' para repetir el proceso")
-    print("   • Ejecuta '4_Configurador.bat' para cambiar configuración")
     print("   • Los productos se rotan automáticamente\n")
 
 

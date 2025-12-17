@@ -1,9 +1,9 @@
-titulo=E-Yooso | Z686 RGB 65% | Negro
-precio=45
+titulo=Sin título
+precio=43
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=E-Yooso | Z686 RGB 65% | Negro
+descripcion=Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personales están cifrados de extremo a extremo. | Acceder a un historial de chats más amplio en la aplicación | Mouse INALAMBRICO GAMER | No se pudo cargar este mensaje. Abre el mensaje en tu teléfono para verlo. Haz clic aquí para actualizar. | Escribe un mensaje | EYooso Z - 11 RGB / 60 % | Color: Plomo - Negro | Modos de Iluminación: 20 Modos | Incluye la Velocidad de efecto del Modo | Incluye Intensidad de Brillo | Tipo de interfaz: USB | Estándar del teclado: 61 teclas de Inyección de disparo doble. | Teclado retroiluminado: RGB
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

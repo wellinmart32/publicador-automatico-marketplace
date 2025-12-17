@@ -3,8 +3,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 import time
 import os
 
@@ -16,7 +14,7 @@ class PublicadorMarketplace:
         self.wait = None
     
     def iniciar_navegador(self):
-        """Inicia Chrome con perfil dedicado para el bot"""
+        """Inicia Chrome con perfil dedicado - SIN webdriver-manager"""
         print("🌐 Iniciando Chrome...")
         
         opciones = webdriver.ChromeOptions()
@@ -28,11 +26,30 @@ class PublicadorMarketplace:
         opciones.add_experimental_option("excludeSwitches", ["enable-automation"])
         opciones.add_experimental_option('useAutomationExtension', False)
         
-        servicio = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=servicio, options=opciones)
-        self.wait = WebDriverWait(self.driver, 20)
+        # USAR CHROME SIN WEBDRIVER-MANAGER
+        try:
+            print("   Iniciando Chrome sin webdriver-manager...")
+            self.driver = webdriver.Chrome(options=opciones)
+            print("✅ Navegador iniciado correctamente")
+        except Exception as e:
+            print(f"\n❌ Error al iniciar Chrome: {e}\n")
+            print("="*60)
+            print("🔧 SOLUCIONES:")
+            print("="*60)
+            print("1. Descarga ChromeDriver compatible con tu Chrome:")
+            print("   https://googlechromelabs.github.io/chrome-for-testing/")
+            print()
+            print("2. Extrae chromedriver.exe")
+            print()
+            print("3. Agrégalo al PATH de Windows O")
+            print("   Colócalo en: C:\\Windows\\System32\\")
+            print()
+            print("4. Verifica tu versión de Chrome:")
+            print("   Abre Chrome -> Menú (3 puntos) -> Ayuda -> Acerca de")
+            print("="*60 + "\n")
+            raise
         
-        print("✅ Navegador iniciado")
+        self.wait = WebDriverWait(self.driver, 20)
     
     def esperar_login_facebook(self):
         """Espera a que el usuario inicie sesión en Facebook si es necesario"""
@@ -239,23 +256,19 @@ class PublicadorMarketplace:
             campo_ubicacion.click()
             time.sleep(0.5)
             
-            # Limpiar completamente
             campo_ubicacion.send_keys(Keys.CONTROL + "a")
             time.sleep(0.2)
             campo_ubicacion.send_keys(Keys.DELETE)
             time.sleep(0.3)
             
-            # Escribir ubicación
             campo_ubicacion.send_keys(ubicacion_deseada)
-            time.sleep(3)  # Esperar que aparezcan sugerencias
+            time.sleep(3)
             
-            # NUEVO: Seleccionar "Guayaquil, Ciudad" del dropdown
             try:
-                # Buscar la opción "Guayaquil" seguida de "Ciudad"
                 opciones_dropdown = [
                     "//div[@role='listbox']//div[@role='option']//span[contains(text(), 'Guayaquil')]//ancestor::div[@role='option']",
                     "//div[@role='option' and contains(., 'Guayaquil') and contains(., 'Ciudad')]",
-                    "//div[@role='listbox']//div[@role='option'][1]"  # Primera opción como fallback
+                    "//div[@role='listbox']//div[@role='option'][1]"
                 ]
                 
                 opcion_seleccionada = False
@@ -263,7 +276,6 @@ class PublicadorMarketplace:
                     try:
                         opciones = self.driver.find_elements(By.XPATH, selector_opcion)
                         if opciones:
-                            # Buscar la que contenga "Ciudad"
                             for opcion in opciones:
                                 texto_opcion = opcion.text.lower()
                                 if 'ciudad' in texto_opcion or 'guayaquil' in texto_opcion:

@@ -1,4 +1,5 @@
 import time
+import json
 from compartido.gestor_archivos import (
     crear_estructura_carpetas,
     contar_articulos,
@@ -90,10 +91,61 @@ def main():
     
     # CRÍTICO: Recargar el gestor DESPUÉS de cualquier operación previa
     # Esto asegura que tengamos los datos MÁS RECIENTES del JSON
+    print("⏳ Esperando sincronización del sistema de archivos (5 segundos)...")
+    time.sleep(5)
+    
+    print("\n🔄 Recargando registro desde archivo...")
+    
     gestor = GestorRegistro()
     gestor.registro = gestor.cargar_registro()  # Forzar recarga del archivo
     
-    print("🔄 Registro recargado desde archivo")
+    # DEBUG ULTRA DETALLADO
+    print(f"\n🔍 DEBUG POST-RECARGA:")
+    print(f"   📄 Archivo JSON: {gestor.archivo_registro}")
+    print(f"   📊 Índice en memoria: {gestor.registro.get('indice_catalogo_whatsapp', 'NO EXISTE')}")
+    print(f"   ⏳ Pendientes en memoria: {gestor.registro.get('pendientes', 'NO EXISTE')}")
+    print(f"   📅 Publicados hoy en memoria: {gestor.registro.get('publicaciones_hoy', 'NO EXISTE')}")
+    print(f"   🔢 Total elementos historial: {len(gestor.registro.get('historial', []))}")
+    
+    # DEBUG: Detectar productos duplicados
+    print(f"\n   🔍 Verificando productos duplicados en historial:")
+    articulos_vistos = {}
+    for entrada in gestor.registro.get('historial', []):
+        num_art = entrada.get('articulo')
+        titulo = entrada.get('titulo', 'Sin título')[:30]
+        estado = entrada.get('estado', 'sin estado')
+        
+        if num_art in articulos_vistos:
+            print(f"      ⚠️  DUPLICADO: Articulo_{num_art} ({titulo}) - Estado: {estado}")
+            print(f"         Primera aparición: {articulos_vistos[num_art]}")
+        else:
+            articulos_vistos[num_art] = f"{titulo} - {estado}"
+    
+    # Verificar que el archivo físico coincide
+    try:
+        with open(gestor.archivo_registro, 'r', encoding='utf-8') as f:
+            archivo_real = json.load(f)
+            print(f"\n   🗂️  VERIFICACIÓN ARCHIVO FÍSICO:")
+            print(f"      Índice en disco: {archivo_real.get('indice_catalogo_whatsapp', 'NO EXISTE')}")
+            print(f"      Pendientes en disco: {archivo_real.get('pendientes', 'NO EXISTE')}")
+            
+            if archivo_real.get('indice_catalogo_whatsapp') != gestor.registro.get('indice_catalogo_whatsapp'):
+                print(f"      ❌ DESINCRONIZADO: archivo != memoria")
+            else:
+                print(f"      ✅ Sincronizado correctamente")
+    except Exception as e:
+        print(f"   ❌ Error leyendo archivo físico: {e}")
+    
+    print()
+    
+    # Verificar que la recarga funcionó
+    indice_catalogo = gestor.registro.get('indice_catalogo_whatsapp', 0)
+    pendientes_count = len(gestor.registro.get('pendientes', []))
+    
+    print(f"   ✅ Registro recargado")
+    print(f"   📊 Índice catálogo: {indice_catalogo}")
+    print(f"   📦 Pendientes detectados: {pendientes_count}")
+    print()
     
     # Verificar límite diario
     if not gestor.puede_publicar_hoy(config['max_publicaciones_por_dia']):
