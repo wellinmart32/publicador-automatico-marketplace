@@ -50,6 +50,10 @@ class GestorRegistro:
         """Obtiene el índice actual del catálogo de WhatsApp"""
         return self.registro.get('indice_catalogo_whatsapp', 0)
     
+    def obtener_articulos_pendientes(self):
+        """Obtiene la lista de artículos pendientes de publicar"""
+        return self.registro.get('pendientes', [])
+    
     def actualizar_indice_catalogo(self, cantidad_extraida):
         """Actualiza el índice del catálogo después de extraer productos"""
         indice_actual = self.registro.get('indice_catalogo_whatsapp', 0)
@@ -121,3 +125,36 @@ class GestorRegistro:
         """Verifica si se pueden publicar más productos hoy"""
         self.resetear_contador_diario()
         return self.registro['publicaciones_hoy'] < max_publicaciones_dia
+    
+    def registrar_publicacion_exitosa(self, articulo, titulo):
+        """Registra una publicación exitosa"""
+        # Actualizar historial
+        for entrada in self.registro['historial']:
+            if entrada['articulo'] == articulo:
+                entrada['fecha_publicacion'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                entrada['estado'] = 'publicado'
+                break
+        
+        # Remover de pendientes
+        if articulo in self.registro['pendientes']:
+            self.registro['pendientes'].remove(articulo)
+        
+        # Actualizar contadores
+        self.registro['total_publicados'] += 1
+        self.registro['publicaciones_hoy'] += 1
+        self.registro['ultimo_articulo_publicado'] = articulo
+        self.registro['fecha_ultima_publicacion'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        self.guardar_registro()
+    
+    def registrar_error(self, articulo, titulo, error):
+        """Registra un error durante la publicación"""
+        entrada_error = {
+            "articulo": articulo,
+            "titulo": titulo,
+            "error": error,
+            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        self.registro['errores'].append(entrada_error)
+        self.guardar_registro()

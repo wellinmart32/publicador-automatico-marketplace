@@ -1,9 +1,10 @@
-titulo=Sin título
+titulo=E-Yooso | Z686 RGB 65% | Negro
 precio=45
+marca=
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion=Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personales están cifrados de extremo a extremo. | Acceder a un historial de chats más amplio en la aplicación | Mouse INALAMBRICO GAMER | No se pudo cargar este mensaje. Abre el mensaje en tu teléfono para verlo. Haz clic aquí para actualizar. | Escribe un mensaje | E-Yooso | Z686 RGB 65% | Negro | * Teclado Z686 de E-Yooso: Compacto, duradero y eficiente para un rendimiento de alto nivel. | * Color: Disponible en Negro. | * Switch Rojo: Ideal para un rendimiento silencioso y suave con retroalimentación táctil. | * Teclado RGB: Personaliza la iluminación con efectos de colores vivos. | * Teclado 65% (68 teclas): Completamente funcional, con teclas multimedia FN para mayor comodidad. | * Hotswap de switches: Intercambia tus switches sin necesidad de soldadura, con retroalimentación táctil y sensación clicky. | * Durabilidad: Hasta 50 millones de pulsaciones garantizadas para largas sesiones de juego. | * Incluye 2 switches de repuesto: Incluye keypicker, barra espaciadora y tecla Esc extra. | * Anti-Ghosting y N-Key Rollover: Cada pulsación se registra sin interferencias. | * Diseño ergonómico: Con inclinación ajustable para una postura más cómoda y estable. | * Compatibilidad: Funciona perfectamente con Windows, macOS y Android.
+descripcion=E-Yooso | Z686 RGB 65% | Negro | * Teclado Z686 de E-Yooso: Compacto, duradero y eficiente para un rendimiento de alto nivel. | * Color: Disponible en Negro. | * Switch Rojo: Ideal para un rendimiento silencioso y suave con retroalimentación táctil. | * Teclado RGB: Personaliza la iluminación con efectos de colores vivos. | * Teclado 65% (68 teclas): Completamente funcional, con teclas multimedia FN para mayor comodidad. | * Hotswap de switches: Intercambia tus switches sin necesidad de soldadura, con retroalimentación táctil y sensación clicky. | * Durabilidad: Hasta 50 millones de pulsaciones garantizadas para largas sesiones de juego. | * Incluye 2 switches de repuesto: Incluye keypicker, barra espaciadora y tecla Esc extra. | * Anti-Ghosting y N-Key Rollover: Cada pulsación se registra sin interferencias. | * Diseño ergonómico: Con inclinación ajustable para una postura más cómoda y estable. | * Compatibilidad: Funciona perfectamente con Windows, macOS y Android.
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=

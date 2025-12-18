@@ -4,50 +4,50 @@
   "historial": [
     {
       "articulo": 1,
-      "titulo": "Sin título",
+      "titulo": "E-Yooso | HZ68 RGB 65% | Plomo Degradado",
       "precio": "65",
-      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
-      "fecha_extraccion": "2025-12-16 01:17:50",
+      "descripcion": "E-Yooso | HZ68 RGB 65% | Plomo Degradado | Teclado HZ68 de E-Yooso: Compacto y eficiente, diseñado p...",
+      "fecha_extraccion": "2025-12-17 19:14:27",
       "fecha_publicacion": null,
       "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 2,
-      "titulo": "Sin título",
+      "titulo": "E-Yooso | Z686 RGB 65% | Negro",
       "precio": "45",
-      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
-      "fecha_extraccion": "2025-12-16 01:17:50",
+      "descripcion": "E-Yooso | Z686 RGB 65% | Negro | * Teclado Z686 de E-Yooso: Compacto, duradero y eficiente para un r...",
+      "fecha_extraccion": "2025-12-17 19:14:27",
       "fecha_publicacion": null,
       "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 3,
-      "titulo": "Sin título",
+      "titulo": "EYooso Z - 11 RGB / 60 %",
       "precio": "43",
-      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
-      "fecha_extraccion": "2025-12-16 01:17:50",
+      "descripcion": "EYooso Z - 11 RGB / 60 % | Marca: E-Yooso | Modelo: Z - 11 | Color: Negro - Plomo | Modos de Ilumina...",
+      "fecha_extraccion": "2025-12-17 19:14:27",
       "fecha_publicacion": null,
       "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 4,
-      "titulo": "Sin título",
+      "titulo": "EYooso Z - 11 RGB / 60 %",
       "precio": "43",
-      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
-      "fecha_extraccion": "2025-12-16 01:17:50",
+      "descripcion": "EYooso Z - 11 RGB / 60 % | Marca: E-Yooso | Modelo: Z - 11 | Color: Plomo - Negro | Modos de Ilumina...",
+      "fecha_extraccion": "2025-12-17 19:14:27",
       "fecha_publicacion": null,
       "estado": "extraido_pendiente",
       "url_marketplace": null
     },
     {
       "articulo": 5,
-      "titulo": "Sin título",
+      "titulo": "E-Yooso | X11 PRO | Negro",
       "precio": "34",
-      "descripcion": "Buscar una forma de trabajar en of sin mostrarme, esto reemplaza lo del con | Tus mensajes personale...",
-      "fecha_extraccion": "2025-12-16 01:17:50",
+      "descripcion": "E-Yooso | X11 PRO | Negro | Conectividad avanzada: Funciona por Bluetooth, conexión inalámbrica 2.4 ...",
+      "fecha_extraccion": "2025-12-17 19:14:27",
       "fecha_publicacion": null,
       "estado": "extraido_pendiente",
       "url_marketplace": null
@@ -66,10 +66,166 @@
       "titulo": "Sin título",
       "error": "('Connection aborted.', ConnectionResetError(10054, 'Se ha forzado la interrupción de una conexión existente por el host remoto', None, 10054, None))",
       "fecha": "2025-12-11 02:53:23"
+    },
+    {
+      "articulo": 1,
+      "titulo": "Mouse Pads",
+      "error": "Error en publicación",
+      "fecha": "2025-12-17 16:45:53"
+    },
+    {
+      "articulo": 2,
+      "titulo": "Mouse Pads",
+      "error": "Error en publicación",
+      "fecha": "2025-12-17 16:47:58"
+    },
+    {
+      "articulo": 3,
+      "titulo": "Mouse Pads",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 16:48:49"
+    },
+    {
+      "articulo": 4,
+      "titulo": "Mouse Pads",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 16:48:49"
+    },
+    {
+      "articulo": 5,
+      "titulo": "Mouse Pads",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 16:48:50"
+    },
+    {
+      "articulo": 1,
+      "titulo": "E-Yooso | HZ68 RGB 65% | Plomo Degradado",
+      "error": "Error en publicación",
+      "fecha": "2025-12-17 17:16:18"
+    },
+    {
+      "articulo": 2,
+      "titulo": "E-Yooso | Z686 RGB 65% | Negro",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:17:10"
+    },
+    {
+      "articulo": 3,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:17:10"
+    },
+    {
+      "articulo": 4,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:17:10"
+    },
+    {
+      "articulo": 5,
+      "titulo": "E-Yooso | X11 PRO | Negro",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:17:10"
+    },
+    {
+      "articulo": 1,
+      "titulo": "E-Yooso | HZ68 RGB 65% | Plomo Degradado",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:48:11"
+    },
+    {
+      "articulo": 2,
+      "titulo": "E-Yooso | Z686 RGB 65% | Negro",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:48:11"
+    },
+    {
+      "articulo": 3,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:48:11"
+    },
+    {
+      "articulo": 4,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:48:11"
+    },
+    {
+      "articulo": 5,
+      "titulo": "E-Yooso | X11 PRO | Negro",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 17:48:11"
+    },
+    {
+      "articulo": 1,
+      "titulo": "E-Yooso | HZ68 RGB 65% | Plomo Degradado",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:01:23"
+    },
+    {
+      "articulo": 2,
+      "titulo": "E-Yooso | Z686 RGB 65% | Negro",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:01:23"
+    },
+    {
+      "articulo": 3,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:01:23"
+    },
+    {
+      "articulo": 4,
+      "titulo": "EYooso Z - 11 RGB / 60 %",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:01:23"
+    },
+    {
+      "articulo": 5,
+      "titulo": "E-Yooso | X11 PRO | Negro",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:01:23"
+    },
+    {
+      "articulo": 1,
+      "titulo": "Sin título",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:37:53"
+    },
+    {
+      "articulo": 2,
+      "titulo": "Sin título",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:37:53"
+    },
+    {
+      "articulo": 3,
+      "titulo": "Sin título",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:37:53"
+    },
+    {
+      "articulo": 4,
+      "titulo": "Sin título",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:37:53"
+    },
+    {
+      "articulo": 5,
+      "titulo": "Sin título",
+      "error": "Message: invalid session id\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7ff798248895\n\t0x7ff7982488f0\n\t0x7ff798021465\n\t0x7ff798069d83\n\t0x7ff7980a1ee2\n\t0x7ff79809c500\n\t0x7ff79809b6f0\n\t0x7ff797feb325\n\t0x7ff7985605f0\n\t0x7ff79855af30\n\t0x7ff798579696\n\t0x7ff798265d94\n\t0x7ff79826ed3c\n\t0x7ff797fe9cb8\n\t0x7ff7986befb8\n\t0x7ff904f7e8d7\n\t0x7ff9062ac53c\n",
+      "fecha": "2025-12-17 18:37:53"
+    },
+    {
+      "articulo": 1,
+      "titulo": "Sin título",
+      "error": "Error en publicación",
+      "fecha": "2025-12-17 18:49:08"
     }
   ],
   "publicaciones_hoy": 0,
   "fecha_ultima_publicacion": null,
-  "ultima_ejecucion": "2025-12-16 01:17:50",
-  "indice_catalogo_whatsapp": 28
+  "ultima_ejecucion": "2025-12-17 19:14:27",
+  "indice_catalogo_whatsapp": 107
 }

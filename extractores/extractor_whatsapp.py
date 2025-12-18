@@ -400,7 +400,10 @@ class ExtractorWhatsApp:
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", producto_item)
                 time.sleep(1.5)
                 producto_item.click()
-                time.sleep(6)
+                time.sleep(3)
+                
+                print("⏳ Esperando que se cargue SOLO el producto actual...")
+                time.sleep(15)  # Espera larga para que desaparezca vista anterior
                 
                 videos = self.driver.find_elements(By.TAG_NAME, 'video')
                 if len(videos) > 0:
@@ -574,53 +577,50 @@ class ExtractorWhatsApp:
             print(f"🔍 PASO 2: EXTRAYENDO TÍTULO")
             print(f"{'─'*60}")
             
-            # Extraer título
+            # Extraer título - BUSCAR SOLO EN EL DIALOG DEL PRODUCTO
             try:
+                # Buscar primero el contenedor del dialog/modal
+                dialog_xpath = "//div[@role='dialog' or contains(@class, 'x78zum5')]"
+                
                 titulos_posibles = self.driver.find_elements(By.XPATH, 
-                    "//div[contains(@class, 'x1okw0bk')]//span[contains(@class, 'selectable-text')]"
+                    f"{dialog_xpath}//span[contains(@class, 'selectable-text')]"
                 )
                 
                 print(f"   🔎 Buscando título entre {len(titulos_posibles)} elementos...")
-                candidatos_rechazados = []
+                candidatos_validos = []
                 
-                for idx, titulo_elem in enumerate(titulos_posibles[:15]):
+                for idx, titulo_elem in enumerate(titulos_posibles[:20]):
                     try:
                         if not titulo_elem.is_displayed():
                             continue
                         
                         texto = titulo_elem.text.strip()
                         
+                        # Criterios para título válido
                         if (texto and 
                             8 < len(texto) < 70 and 
                             '$' not in texto and 
                             '○' not in texto and 
                             'Marca:' not in texto and
-                            'Trabajo' not in texto and
-                            'Leer más' not in texto):
+                            'Modelo:' not in texto and
+                            'Color:' not in texto and
+                            'Leer más' not in texto and
+                            not texto.startswith('Buscar') and
+                            not texto.startswith('Tus mensajes')):
                             
-                            producto['titulo'] = texto
-                            print(f"   ✅ Título encontrado: '{texto}'")
-                            print(f"      (Candidato {idx + 1}, longitud: {len(texto)} caracteres)")
-                            break
-                        else:
-                            razon = []
-                            if len(texto) <= 8: razon.append("muy corto")
-                            if len(texto) >= 70: razon.append("muy largo")
-                            if '$' in texto: razon.append("contiene precio")
-                            if '○' in texto: razon.append("es descripción")
-                            if 'Marca:' in texto: razon.append("es marca")
-                            if texto:
-                                candidatos_rechazados.append(f"'{texto[:40]}...' ({', '.join(razon)})")
+                            candidatos_validos.append(texto)
+                            print(f"   🔎 Candidato {idx + 1}: '{texto[:50]}...'")
                     except:
                         continue
                 
-                if not producto['titulo']:
+                # TOMAR EL ÚLTIMO CANDIDATO VÁLIDO
+                if candidatos_validos:
+                    producto['titulo'] = candidatos_validos[-1]
+                    print(f"   ✅ Título FINAL seleccionado: '{producto['titulo']}'")
+                else:
                     producto['titulo'] = "Sin título"
                     print(f"   ⚠️  No se encontró título válido")
-                    if candidatos_rechazados:
-                        print(f"   📋 Candidatos rechazados:")
-                        for candidato in candidatos_rechazados[:3]:
-                            print(f"      • {candidato}")
+                    
             except Exception as e:
                 producto['titulo'] = "Sin título"
                 print(f"   ❌ Error extrayendo título: {e}")
@@ -696,11 +696,13 @@ class ExtractorWhatsApp:
                 
                 print(f"📋 Extrayendo descripción completa...")
                 
-                # ESTRATEGIA 1: Buscar contenedor principal de descripción
+                # ESTRATEGIA 1: Buscar contenedor principal de descripción SOLO EN EL DIALOG
+                dialog_base = "//div[@role='dialog' or contains(@class, 'x78zum5')]"
+                
                 selectores_contenedor = [
-                    "//div[contains(@class, 'x1okw0bk')]",  # Contenedor principal
-                    "//div[@role='dialog']//div[contains(@class, 'x78zum5')]",  # Dialog content
-                    "//div[contains(@class, 'x1n2onr6')]"  # Alternative container
+                    f"{dialog_base}//div[contains(@class, 'x1okw0bk')]",  # Contenedor principal
+                    f"{dialog_base}//div[contains(@class, 'x78zum5')]",  # Dialog content
+                    f"{dialog_base}//div[contains(@class, 'x1n2onr6')]"  # Alternative container
                 ]
                 
                 for selector_contenedor in selectores_contenedor:
@@ -732,6 +734,11 @@ class ExtractorWhatsApp:
                                     linea != producto['precio'] and
                                     not linea.startswith('$') and  # Excluir cualquier precio
                                     '$' not in linea[:5] and  # Evitar líneas que empiezan con precio
+                                    not linea.startswith('Buscar') and  # Excluir búsquedas
+                                    not linea.startswith('Tus mensajes') and  # Excluir avisos
+                                    'cifrados de extremo' not in linea and  # Excluir avisos
+                                    'No se pudo cargar' not in linea and  # Excluir errores
+                                    'Acceder a un historial' not in linea and  # Excluir avisos
                                     'Leer más' not in linea and
                                     'Ver más' not in linea and
                                     'Enviar mensaje' not in linea and
@@ -806,12 +813,53 @@ class ExtractorWhatsApp:
                     fragmentos_rechazados = 0
                     
                     for fragmento in descripcion_completa:
-                        # Filtro final: excluir fragmentos problemáticos
-                        if (fragmento and
-                            'WhatsApp' not in fragmento and
-                            'mensajes anteriores' not in fragmento and
-                            'Usa WhatsApp en tu teléfono' not in fragmento and
-                            len(fragmento) > 15):  # Al menos 15 caracteres útiles
+                        es_valido = True
+                        
+                        # Lista de textos de interfaz de WhatsApp a rechazar
+                        textos_interfaz = [
+                            'No leídos', 'Favoritos', 'Grupos', 'Mensajes',
+                            'Acceder a un historial', 'Mouse Pads', 'Kit de Limpieza',
+                            'Mouse INALAMBRICO GAMER', 'Detalles',
+                            'Buscar una forma', 'Tus mensajes personales',
+                            'cifrados de extremo', 'No se pudo cargar',
+                            'Escribe un mensaje', 'WhatsApp', 'mensajes anteriores'
+                        ]
+                        
+                        # FILTROS: Rechazar basura de interfaz
+                        es_basura = False
+                        
+                        # Rechazar si es exactamente un texto de interfaz
+                        if fragmento in textos_interfaz:
+                            es_basura = True
+                        
+                        # Rechazar si es una fecha (formato DD/MM/YYYY)
+                        if '/' in fragmento and len(fragmento) <= 12:
+                            partes = fragmento.split('/')
+                            if len(partes) == 3 and all(p.isdigit() for p in partes):
+                                es_basura = True
+                        
+                        # Rechazar si es una hora (formato HH:MM)
+                        if ':' in fragmento and ('a.m.' in fragmento or 'p.m.' in fragmento):
+                            es_basura = True
+                        
+                        # Rechazar si contiene ciertas frases
+                        if any(texto in fragmento for texto in ['WhatsApp', 'mensajes anteriores']):
+                            es_basura = True
+                        
+                        # Rechazar si es muy corto
+                        if len(fragmento) <= 2:
+                            es_basura = True
+                        
+                        # IMPORTANTE: Si contiene ":" probablemente es un dato válido (Marca:, Color:, etc)
+                        if ':' in fragmento and not ('a.m.' in fragmento or 'p.m.' in fragmento):
+                            es_basura = False  # Forzar como válido
+                        
+                        if not es_basura:
+                            es_valido = True
+                        else:
+                            es_valido = False
+                        
+                        if es_valido:
                             descripcion_valida.append(fragmento)
                         else:
                             fragmentos_rechazados += 1
@@ -836,6 +884,51 @@ class ExtractorWhatsApp:
                 print(f"   ❌ Error extrayendo descripción: {e}")
                 producto['descripcion'] = producto['titulo']
             
+            # POST-PROCESAMIENTO: Extraer título y marca de la descripción
+            print(f"\n{'─'*60}")
+            print(f"🔧 POST-PROCESAMIENTO")
+            print(f"{'─'*60}")
+            
+            # Si el título es "Sin título", tomar fragmentos iniciales de la descripción
+            if producto['titulo'] == "Sin título" and producto['descripcion']:
+                fragmentos_desc = producto['descripcion'].split(' | ')
+                
+                # Tomar fragmentos hasta encontrar uno que contenga ":" (especificaciones)
+                # Ejemplo: "E-Yooso | X11 PRO | Negro" → todos sin ":", es el título completo
+                # Ejemplo: "EYooso Z - 11 RGB / 60 % | Marca: E-Yooso" → parar en "Marca:"
+                fragmentos_titulo = []
+                for fragmento in fragmentos_desc[:5]:  # Máximo 5 fragmentos
+                    fragmento = fragmento.strip()
+                    # Si tiene ":", es una especificación, parar aquí
+                    if ':' in fragmento:
+                        break
+                    # Si no tiene ":", es parte del título
+                    fragmentos_titulo.append(fragmento)
+                
+                if fragmentos_titulo:
+                    titulo_extraido = ' | '.join(fragmentos_titulo)
+                    if titulo_extraido and len(titulo_extraido) > 5:
+                        producto['titulo'] = titulo_extraido
+                        print(f"   ✅ Título extraído de descripción: '{titulo_extraido}'")
+            
+            # Extraer marca de la descripción (sin eliminarla)
+            if not producto.get('marca') or producto['marca'] == '':
+                # Buscar "Marca: XXXX" en la descripción
+                if 'Marca:' in producto['descripcion']:
+                    fragmentos_desc = producto['descripcion'].split(' | ')
+                    for fragmento in fragmentos_desc:
+                        if 'Marca:' in fragmento:
+                            # Extraer valor después de "Marca:"
+                            partes = fragmento.split('Marca:')
+                            if len(partes) > 1:
+                                marca_valor = partes[1].strip()
+                                # Limpiar si hay otros separadores
+                                marca_valor = marca_valor.split('|')[0].split('\n')[0].strip()
+                                if marca_valor:
+                                    producto['marca'] = marca_valor
+                                    print(f"   ✅ Marca extraída de descripción: '{marca_valor}'")
+                                    break
+            
             # Guardar datos.txt
             if numero_articulo:
                 print(f"\n{'─'*60}")
@@ -848,6 +941,7 @@ class ExtractorWhatsApp:
                 
                 plantilla = f"""titulo={producto['titulo']}
 precio={producto['precio']}
+marca={producto.get('marca', '')}
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
