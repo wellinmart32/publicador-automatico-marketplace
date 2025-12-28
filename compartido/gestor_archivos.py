@@ -1,12 +1,75 @@
 import os
-import configparser
 import shutil
 import time
 from datetime import datetime
+import configparser
 
+
+def leer_datos_articulo(numero_articulo):
+    """Lee los datos del archivo datos.txt del artículo especificado - VERSIÓN CORREGIDA MULTI-LÍNEA"""
+    carpeta_articulo = os.path.join("ArticulosMarketplace", f"Articulo_{numero_articulo}")
+    archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
+    
+    if not os.path.exists(archivo_datos):
+        print(f"❌ No se encontró el archivo datos.txt en Articulo_{numero_articulo}")
+        return None
+    
+    datos = {}
+    
+    with open(archivo_datos, 'r', encoding='utf-8') as f:
+        contenido_completo = f.read()
+    
+    # Separar líneas
+    lineas = contenido_completo.split('\n')
+    
+    i = 0
+    while i < len(lineas):
+        linea = lineas[i].strip()
+        
+        if '=' in linea:
+            clave, valor = linea.split('=', 1)
+            clave = clave.strip()
+            valor = valor.strip()
+            
+            # CASO ESPECIAL: descripcion es multi-línea
+            if clave == 'descripcion':
+                # Leer TODAS las líneas hasta encontrar la siguiente clave válida
+                descripcion_completa = [valor] if valor else []
+                
+                # Avanzar leyendo líneas adicionales
+                i += 1
+                while i < len(lineas):
+                    siguiente_linea = lineas[i]
+                    
+                    # Si la línea tiene '=' y es una clave conocida, parar
+                    if '=' in siguiente_linea:
+                        posible_clave = siguiente_linea.split('=')[0].strip()
+                        claves_validas = ['disponibilidad', 'encuentro_publico', 'etiquetas', 'sku', 'titulo', 'precio', 'marca', 'categoria', 'estado', 'ubicacion']
+                        
+                        if posible_clave in claves_validas:
+                            # Esta línea es una nueva clave, retroceder
+                            i -= 1
+                            break
+                    
+                    # Esta línea es parte de la descripción
+                    descripcion_completa.append(siguiente_linea.rstrip())
+                    i += 1
+                
+                # Unir con saltos de línea
+                datos[clave] = '\n'.join(descripcion_completa)
+            else:
+                # Claves normales (una sola línea)
+                datos[clave] = valor
+        
+        i += 1
+    
+    return datos
+
+
+# [RESTO DE FUNCIONES SIN CAMBIOS - COPIAR DEL ORIGINAL]
 
 def leer_config_global():
-    """Lee config_global.txt y retorna un diccionario con la configuración"""
+    """Lee configuración desde config_global.txt"""
     archivo_config = "config_global.txt"
     
     if not os.path.exists(archivo_config):
@@ -126,7 +189,6 @@ def crear_carpeta_articulo(numero):
         os.makedirs(carpeta_imagenes)
     
     if not os.path.exists(archivo_datos):
-        # UBICACIÓN CAMBIADA: Guayaquil en lugar de Mall del Sol, Guayaquil
         plantilla = """titulo=Ejemplo Producto
 precio=100
 categoria=Electrónica e informática
@@ -343,26 +405,6 @@ def obtener_numero_articulo():
         numero = 1
     
     return numero
-
-
-def leer_datos_articulo(numero_articulo):
-    """Lee los datos del archivo datos.txt del artículo especificado"""
-    carpeta_articulo = os.path.join("ArticulosMarketplace", f"Articulo_{numero_articulo}")
-    archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
-    
-    if not os.path.exists(archivo_datos):
-        print(f"❌ No se encontró el archivo datos.txt en Articulo_{numero_articulo}")
-        return None
-    
-    datos = {}
-    with open(archivo_datos, 'r', encoding='utf-8') as f:
-        for linea in f:
-            linea = linea.strip()
-            if '=' in linea:
-                clave, valor = linea.split('=', 1)
-                datos[clave.strip()] = valor.strip()
-    
-    return datos
 
 
 def crear_gitkeep_en_imagenes():
