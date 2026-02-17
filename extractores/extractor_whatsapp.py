@@ -159,7 +159,7 @@ class ExtractorWhatsApp:
             
             if not encontrado:
                 print("   ⚠️  'Todos los artículos' no encontrado, continuando de todos modos...")
-                return True  # No es crítico, continuar
+                return True
             
             time.sleep(2)
             
@@ -200,10 +200,47 @@ class ExtractorWhatsApp:
             return True
     
     def contar_productos_catalogo(self):
-        """Cuenta cuántos productos REALES hay en el catálogo"""
+        """Cuenta cuántos productos REALES hay en el catálogo - CON LAZY LOADING"""
         try:
+            # PASO 1: Hacer scroll para cargar TODOS los productos (lazy loading)
+            print(f"📜 Cargando todos los productos del catálogo...")
+            
+            productos_anteriores = 0
+            scroll_count = 0
+            max_scrolls = 30
+            
+            while scroll_count < max_scrolls:
+                # Obtener productos actuales
+                items = self.driver.find_elements(By.XPATH, "//div[@role='listitem']")
+                items_count = len(items)
+                
+                if scroll_count == 0:
+                    print(f"   Productos inicialmente visibles: {items_count}")
+                
+                # Si no aumentó = fin del catálogo
+                if items_count == productos_anteriores and scroll_count > 0:
+                    print(f"   ✅ Catálogo completo cargado: {items_count} items\n")
+                    break
+                
+                # Scroll al ÚLTIMO producto para activar lazy loading
+                if items:
+                    try:
+                        ultimo = items[-1]
+                        self.driver.execute_script(
+                            "arguments[0].scrollIntoView({behavior: 'smooth', block: 'end'});",
+                            ultimo
+                        )
+                        time.sleep(1.5)
+                    except:
+                        break
+                
+                productos_anteriores = items_count
+                scroll_count += 1
+            
+            # PASO 2: Esperar carga final
             time.sleep(2)
             
+            # PASO 3: Contar y filtrar productos
             selectores_productos = [
                 "//div[@role='listitem']",
                 "//div[contains(@class, '_ak72')]",
@@ -731,7 +768,6 @@ sku="""
         try:
             ruta_destino = os.path.join(carpeta_destino, f"imagen_{numero_imagen}.jpg")
             
-            # Script mejorado para convertir imagen a base64
             script_base64 = """
             return new Promise((resolve, reject) => {
                 const img = arguments[0];
@@ -757,7 +793,6 @@ sku="""
             });
             """
             
-            # Intentar obtener base64
             try:
                 base64_data = self.driver.execute_async_script(script_base64, elemento_img)
                 
@@ -766,8 +801,7 @@ sku="""
                     with open(ruta_destino, 'wb') as f:
                         f.write(base64.b64decode(base64_data))
                     return True
-            except Exception as e:
-                # Fallback: Screenshot del elemento
+            except:
                 try:
                     screenshot = elemento_img.screenshot_as_png
                     if screenshot:

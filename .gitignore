@@ -1,244 +1,66 @@
 # ============================================================
-# .gitignore - Publicador Automático de Marketplace
+# DATOS GENERADOS AUTOMÁTICAMENTE
 # ============================================================
 
-# ============================================================
-# CARPETAS DE DATOS SENSIBLES
-# ============================================================
-
-# Ignorar imágenes de artículos (pueden ser pesadas)
+# Imágenes descargadas de WhatsApp
 ArticulosMarketplace/*/imagenes/*
+!ArticulosMarketplace/*/imagenes/.gitkeep
 
-# Ignorar carpeta de perfiles de Chrome (contiene sesiones)
+# Datos extraídos (se regeneran al ejecutar)
+ArticulosMarketplace/*/datos.txt
+
+# Registro de publicaciones
+registro_publicaciones.json
+
+# Perfiles del navegador
 perfiles/
 
-# Ignorar backups automáticos
+# Backups generados
 backups/
 
-# Ignorar logs de ejecución
-logs/
-
-# Ignorar drivers de Selenium
-drivers/
-
 # ============================================================
-# ARCHIVOS DE PYTHON
+# PYTHON
 # ============================================================
 
-# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# Virtual environments
+*.pyc
+*.pyo
 venv/
-ENV/
 env/
-.venv
+.env
 
 # ============================================================
-# ARCHIVOS TEMPORALES Y DE DESARROLLO
+# SISTEMA OPERATIVO
 # ============================================================
 
-# Screenshots de errores
-error_publicacion.png
-*.png
-
-# Archivos temporales de desarrollo
-*_MEJORADO.py
-*_ORIGINAL.py
-*_BACKUP.py
-*_OLD.py
-*_TEST.py
-
-# Archivos de respaldo
-*.bak
-*.backup
-*.tmp
-*~
-
-# ============================================================
-# ARCHIVOS DEL SISTEMA OPERATIVO
-# ============================================================
-
-# Windows
+.DS_Store
 Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
 *.stackdump
 [Dd]esktop.ini
-$RECYCLE.BIN/
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-*.lnk
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-Icon
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-# Linux
-*~
-.directory
-.Trash-*
-.nfs*
 
 # ============================================================
-# IDEs Y EDITORES
+# IDEs
 # ============================================================
 
-# Visual Studio Code
 .vscode/
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.code-workspace
-
-# PyCharm
 .idea/
 *.iml
-*.iws
-*.ipr
-out/
-
-# Sublime Text
-*.tmlanguage.cache
-*.tmPreferences.cache
-*.stTheme.cache
-*.sublime-workspace
-*.sublime-project
-
-# Vim
-[._]*.s[a-v][a-z]
-[._]*.sw[a-p]
-[._]s[a-rt-v][a-z]
-[._]ss[a-gi-z]
-[._]sw[a-p]
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
 
 # ============================================================
-# ARCHIVOS DE CONFIGURACIÓN LOCAL
+# LOGS Y TEMPORALES
 # ============================================================
 
-# Configuraciones locales (no commitear)
-config_local.txt
-secrets.txt
-credentials.json
-.env
-.env.local
-
-# ============================================================
-# ARCHIVOS DE DATOS EXPORTADOS
-# ============================================================
-
-# Exports CSV/Excel
-historial_publicaciones.csv
-*.xlsx
-*.xls
-
-# ============================================================
-# MANTENER CARPETAS VACÍAS EN GIT
-# ============================================================
-
-# Mantener estructura de carpetas
-!ArticulosMarketplace/*/imagenes/.gitkeep
-!backups/.gitkeep
-!logs/.gitkeep
-
-# Mantener archivos __init__.py
-!compartido/__init__.py
-!extractores/__init__.py
-!publicadores/__init__.py
-
-# ============================================================
-# OTROS
-# ============================================================
-
-# Logs de Chrome/Selenium
+*.log
+*.tmp
+*.bak
 chromedriver.log
 geckodriver.log
+error_publicacion.png
 
-# Node modules (por si se agregan herramientas JS)
-node_modules/
+# ============================================================
+# ARCHIVOS SENSIBLES
+# ============================================================
 
-# Archivos de base de datos (por si se agregan en el futuro)
-*.db
-*.sqlite
-*.sqlite3
+config_local.txt
+secrets.txt
+.env.local

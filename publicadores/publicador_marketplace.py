@@ -618,37 +618,78 @@ class PublicadorMarketplace:
             )
             time.sleep(0.8)
             
-            # Intentar click normal
-            try:
-                campo_descripcion.click()
-            except:
-                # Si falla, usar JavaScript para hacer foco
-                self.driver.execute_script("arguments[0].focus();", campo_descripcion)
-            
+            # Hacer foco en el campo
+            self.driver.execute_script("arguments[0].focus();", campo_descripcion)
             time.sleep(0.3)
             
-            # Mostrar preview de la descripción
+            # Mostrar preview
             preview = descripcion[:80].replace('\n', ' ')
             print(f"📝 Llenando descripción completa ({len(descripcion)} caracteres)...")
             print(f"    Preview: {preview}...")
             
-            # Llenar usando JavaScript (más confiable)
-            self.driver.execute_script(
-                "arguments[0].value = arguments[1];",
-                campo_descripcion,
-                descripcion
-            )
-            
-            # Disparar evento 'input' para que Facebook detecte el cambio
-            self.driver.execute_script(
-                "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));",
-                campo_descripcion
-            )
-            
-            time.sleep(0.3)
-            
-            print(f"✅ Descripción ingresada ({len(descripcion)} caracteres)")
-            return True
+            # MÉTODO 1: Intentar con send_keys primero (más confiable para detectar cambios)
+            try:
+                campo_descripcion.clear()
+                time.sleep(0.2)
+                campo_descripcion.send_keys(descripcion)
+                time.sleep(0.5)
+                
+                # Verificar que se llenó
+                valor_actual = campo_descripcion.get_attribute('value')
+                if valor_actual and len(valor_actual) > 0:
+                    print(f"✅ Descripción ingresada ({len(valor_actual)} caracteres)")
+                    return True
+                else:
+                    print(f"   ⚠️  send_keys no funcionó, usando método alternativo...")
+                    raise Exception("send_keys falló")
+                    
+            except:
+                # MÉTODO 2: JavaScript + eventos múltiples
+                print(f"   🔄 Usando JavaScript con eventos...")
+                
+                # Limpiar campo
+                self.driver.execute_script("arguments[0].value = '';", campo_descripcion)
+                time.sleep(0.2)
+                
+                # Establecer valor
+                self.driver.execute_script(
+                    "arguments[0].value = arguments[1];",
+                    campo_descripcion,
+                    descripcion
+                )
+                
+                # Disparar TODOS los eventos necesarios
+                self.driver.execute_script("""
+                    var element = arguments[0];
+                    
+                    // Focus
+                    element.focus();
+                    
+                    // Input event
+                    var inputEvent = new Event('input', { bubbles: true, cancelable: true });
+                    element.dispatchEvent(inputEvent);
+                    
+                    // Change event
+                    var changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                    element.dispatchEvent(changeEvent);
+                    
+                    // Blur
+                    element.blur();
+                    
+                    // Focus de nuevo
+                    element.focus();
+                """, campo_descripcion)
+                
+                time.sleep(0.5)
+                
+                # Verificar
+                valor_final = campo_descripcion.get_attribute('value')
+                if valor_final and len(valor_final) > 0:
+                    print(f"✅ Descripción ingresada ({len(valor_final)} caracteres)")
+                    return True
+                else:
+                    print(f"❌ Descripción NO se guardó (0 caracteres)")
+                    return False
             
         except Exception as e:
             print(f"❌ Error en descripción: {e}")
