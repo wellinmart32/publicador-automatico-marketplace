@@ -11,6 +11,45 @@ from compartido.gestor_archivos import (
 )
 from publicadores.publicador_marketplace import PublicadorMarketplace
 from gestor_registro import GestorRegistro
+from gestor_licencias import GestorLicencias
+from dialogos_licencia import DialogosLicencia
+
+
+def verificar_licencia_inicio():
+    """Verificar licencia al iniciar la aplicación"""
+    gestor_lic = GestorLicencias("Marketplace")
+    resultado = gestor_lic.verificar_e_iniciar()
+    
+    # Primera vez - solicitar código
+    if resultado.get('necesita_ingreso'):
+        codigo = DialogosLicencia.solicitar_codigo_licencia()
+        
+        if not codigo:
+            DialogosLicencia.mostrar_error("Necesitas un código de licencia para usar la aplicación")
+            return None
+        
+        gestor_lic.guardar_codigo_licencia(codigo)
+        resultado = gestor_lic.verificar_e_iniciar()
+    
+    # Error en verificación
+    if resultado.get('error'):
+        DialogosLicencia.mostrar_error(resultado.get('mensaje'))
+        return None
+    
+    # Trial expirado
+    if resultado.get('expirado'):
+        DialogosLicencia.mostrar_trial_expirado(resultado.get('codigo'))
+        return None
+    
+    # Trial activo
+    if resultado.get('tipo') == 'TRIAL':
+        DialogosLicencia.mostrar_banner_trial(resultado.get('dias_restantes'))
+    
+    # Full
+    if resultado.get('tipo') == 'FULL':
+        print("\n✅ Licencia completa activada - Todas las funciones desbloqueadas\n")
+    
+    return resultado
 
 
 def publicar_articulo_individual(numero_articulo, publicador, gestor, config):
@@ -20,7 +59,6 @@ def publicar_articulo_individual(numero_articulo, publicador, gestor, config):
     print(f"📦 PUBLICANDO ARTICULO_{numero_articulo}")
     print(f"{'='*60}\n")
     
-    # Leer datos del artículo
     datos = leer_datos_articulo(numero_articulo)
     imagenes = obtener_imagenes_articulo(numero_articulo)
     
@@ -29,7 +67,6 @@ def publicar_articulo_individual(numero_articulo, publicador, gestor, config):
         gestor.registrar_error(numero_articulo, "Sin datos", "Archivo datos.txt no encontrado o inválido")
         return False
     
-    # Mostrar información del artículo
     print(f"📄 Datos del artículo:")
     print(f"  Título: {datos.get('titulo', 'N/A')}")
     print(f"  Precio: ${datos.get('precio', 'N/A')}")
@@ -39,46 +76,47 @@ def publicar_articulo_individual(numero_articulo, publicador, gestor, config):
     
     if len(imagenes) == 0:
         print("⚠️  No hay imágenes. Agrega imágenes en la carpeta 'imagenes' antes de publicar.")
-        gestor.registrar_error(numero_articulo, datos.get('titulo', 'Sin título'), "Sin imágenes")
-        return False
     
-    # Publicar
-    try:
-        exito = publicador.publicar_producto_completo(datos, imagenes)
-        
-        if exito:
-            # Registrar publicación exitosa
-            gestor.registrar_publicacion_exitosa(
-                articulo=numero_articulo,
-                titulo=datos.get('titulo', 'Sin título')
-            )
-            
-            print(f"\n✅ Articulo_{numero_articulo} publicado exitosamente")
-            
-            # Esperar entre publicaciones
-            if config['tiempo_entre_publicaciones'] > 0:
-                print(f"\n⏳ Esperando {config['tiempo_entre_publicaciones']}s antes de continuar...")
-                time.sleep(config['tiempo_entre_publicaciones'])
-            
-            return True
-        else:
-            gestor.registrar_error(numero_articulo, datos.get('titulo', 'Sin título'), "Error en publicación")
-            return False
-            
-    except Exception as error:
-        print(f"❌ Error durante la publicación: {error}")
-        gestor.registrar_error(numero_articulo, datos.get('titulo', 'Sin título'), str(error))
+    inicio = time.time()
+    exito = publicador.publicar_producto_completo(datos, imagenes)
+    tiempo = time.time() - inicio
+    
+    if exito:
+        gestor.registrar_publicacion_exitosa(
+            f"Articulo_{numero_articulo}",
+            datos.get('titulo', ''),
+            len(str(datos)),
+            1,
+            tiempo
+        )
+        print(f"\n✅ Articulo_{numero_articulo} publicado exitosamente")
+        return True
+    else:
+        gestor.registrar_error(
+            f"Articulo_{numero_articulo}",
+            "publicacion",
+            "Falló el proceso de publicación"
+        )
+        print(f"\n❌ No se pudo publicar Articulo_{numero_articulo}")
         return False
 
 
 def main():
-    """Función principal que orquesta la publicación"""
+    """Función principal del publicador de marketplace"""
+    
+    # VERIFICAR LICENCIA PRIMERO
+    estado_licencia = verificar_licencia_inicio()
+    
+    if not estado_licencia:
+        print("\n❌ No se pudo verificar la licencia. Cerrando aplicación...")
+        input("\nPresiona Enter para salir...")
+        return
     
     print("\n" + "="*60)
-    print("🚀 PUBLICADOR AUTOMÁTICO DE MARKETPLACE")
+    print(" " * 10 + "🚀 PUBLICADOR AUTOMÁTICO MARKETPLACE")
     print("="*60 + "\n")
     
-    # Leer configuración
+    # Cargar configuración
     try:
         config = leer_config_global()
     except Exception as e:
@@ -86,182 +124,61 @@ def main():
         input("\nPresiona Enter para salir...")
         return
     
-    # Crear estructura si no existe
-    crear_estructura_carpetas()
-    
-    # CRÍTICO: Recargar el gestor DESPUÉS de cualquier operación previa
-    # Esto asegura que tengamos los datos MÁS RECIENTES del JSON
-    print("⏳ Esperando sincronización del sistema de archivos (5 segundos)...")
-    time.sleep(5)
-    
-    print("\n🔄 Recargando registro desde archivo...")
-    
+    # Inicializar gestor de registro
     gestor = GestorRegistro()
-    gestor.registro = gestor.cargar_registro()  # Forzar recarga del archivo
-    
-    # DEBUG ULTRA DETALLADO
-    print(f"\n🔍 DEBUG POST-RECARGA:")
-    print(f"   📄 Archivo JSON: {gestor.archivo_registro}")
-    print(f"   📊 Índice en memoria: {gestor.registro.get('indice_catalogo_whatsapp', 'NO EXISTE')}")
-    print(f"   ⏳ Pendientes en memoria: {gestor.registro.get('pendientes', 'NO EXISTE')}")
-    print(f"   📅 Publicados hoy en memoria: {gestor.registro.get('publicaciones_hoy', 'NO EXISTE')}")
-    print(f"   🔢 Total elementos historial: {len(gestor.registro.get('historial', []))}")
-    
-    # DEBUG: Detectar productos duplicados
-    print(f"\n   🔍 Verificando productos duplicados en historial:")
-    articulos_vistos = {}
-    for entrada in gestor.registro.get('historial', []):
-        num_art = entrada.get('articulo')
-        titulo = entrada.get('titulo', 'Sin título')[:30]
-        estado = entrada.get('estado', 'sin estado')
-        
-        if num_art in articulos_vistos:
-            print(f"      ⚠️  DUPLICADO: Articulo_{num_art} ({titulo}) - Estado: {estado}")
-            print(f"         Primera aparición: {articulos_vistos[num_art]}")
-        else:
-            articulos_vistos[num_art] = f"{titulo} - {estado}"
-    
-    # Verificar que el archivo físico coincide
-    try:
-        with open(gestor.archivo_registro, 'r', encoding='utf-8') as f:
-            archivo_real = json.load(f)
-            print(f"\n   🗂️  VERIFICACIÓN ARCHIVO FÍSICO:")
-            print(f"      Índice en disco: {archivo_real.get('indice_catalogo_whatsapp', 'NO EXISTE')}")
-            print(f"      Pendientes en disco: {archivo_real.get('pendientes', 'NO EXISTE')}")
-            
-            if archivo_real.get('indice_catalogo_whatsapp') != gestor.registro.get('indice_catalogo_whatsapp'):
-                print(f"      ❌ DESINCRONIZADO: archivo != memoria")
-            else:
-                print(f"      ✅ Sincronizado correctamente")
-    except Exception as e:
-        print(f"   ❌ Error leyendo archivo físico: {e}")
-    
-    print()
-    
-    # Verificar que la recarga funcionó
-    indice_catalogo = gestor.registro.get('indice_catalogo_whatsapp', 0)
-    pendientes_count = len(gestor.registro.get('pendientes', []))
-    
-    print(f"   ✅ Registro recargado")
-    print(f"   📊 Índice catálogo: {indice_catalogo}")
-    print(f"   📦 Pendientes detectados: {pendientes_count}")
-    print()
-    
-    # Verificar límite diario
-    if not gestor.puede_publicar_hoy(config['max_publicaciones_por_dia']):
-        print(f"⚠️  LÍMITE DIARIO ALCANZADO")
-        print(f"   Ya publicaste {gestor.registro['publicaciones_hoy']} productos hoy")
-        print(f"   Límite configurado: {config['max_publicaciones_por_dia']}")
-        print("\n💡 Puedes cambiar el límite en '4_Configurador.bat'")
-        input("\nPresiona Enter para salir...")
-        return
     
     # Mostrar estadísticas
     gestor.mostrar_estadisticas()
     
-    # Determinar qué publicar
+    # Contar artículos disponibles
     total_articulos = contar_articulos()
-    articulos_a_publicar = []
     
-    if config['publicar_todos']:
-        # MODO: Publicar todos los artículos disponibles
-        print(f"📦 MODO: Publicar todos los artículos")
-        print(f"   Total disponibles: {total_articulos}")
-        print(f"   Límite diario restante: {config['max_publicaciones_por_dia'] - gestor.registro['publicaciones_hoy']}")
-        
-        # Obtener pendientes
-        pendientes = gestor.obtener_articulos_pendientes()
-        
-        if pendientes:
-            print(f"\n⏳ Artículos pendientes: {pendientes}")
-            # Limitar por el máximo diario
-            articulos_a_publicar = pendientes[:config['max_publicaciones_por_dia'] - gestor.registro['publicaciones_hoy']]
-        else:
-            print(f"\n✅ No hay artículos pendientes de publicar")
-            articulos_a_publicar = []
-        
-        if articulos_a_publicar:
-            print(f"\n🎯 Se publicarán los artículos: {articulos_a_publicar}")
-        else:
-            print(f"\n⚠️  No hay artículos para publicar")
-            print(f"   • Si acabas de extraer, verifica que se hayan registrado correctamente")
-            print(f"   • Si ya publicaste todo, ejecuta de nuevo para extraer más productos")
-            
-            # DEBUG: Mostrar el contenido del registro para diagnóstico
-            print(f"\n🔍 DEBUG - Estado del registro:")
-            print(f"   Pendientes en registro: {gestor.registro['pendientes']}")
-            print(f"   Último publicado: {gestor.registro.get('ultimo_articulo_publicado', 0)}")
-            print(f"   Historial (últimos 3):")
-            for entrada in gestor.registro['historial'][-3:]:
-                print(f"     - Articulo {entrada['articulo']}: {entrada['estado']}")
-            
-            input("\nPresiona Enter para salir...")
-            return
-        
-    else:
-        # MODO: Publicar solo el siguiente artículo
-        print(f"📦 MODO: Publicar siguiente artículo")
-        
-        numero_articulo = obtener_numero_articulo()
-        
-        if not numero_articulo:
-            input("\nPresiona Enter para salir...")
-            return
-        
-        articulos_a_publicar = [numero_articulo]
-        print(f"\n✅ Artículo seleccionado: Articulo_{numero_articulo}")
+    if total_articulos == 0:
+        print("❌ No hay artículos para publicar")
+        print("   Ejecuta primero: py crear_estructura.py")
+        input("\nPresiona Enter para salir...")
+        return
     
-    # Iniciar publicación automática
+    print(f"\n📦 Artículos disponibles: {total_articulos}")
+    
+    # Obtener número de artículo a publicar
+    numero_articulo = obtener_numero_articulo()
+    
+    print(f"\n🎯 Publicando Articulo_{numero_articulo}...")
+    
+    # Inicializar publicador
+    print("\n🌐 Inicializando navegador...")
     publicador = PublicadorMarketplace()
     
     try:
-        publicador.iniciar_navegador()
+        exito = publicar_articulo_individual(numero_articulo, publicador, gestor, config)
         
-        publicaciones_exitosas = 0
-        publicaciones_fallidas = 0
-        
-        for numero in articulos_a_publicar:
-            # Verificar límite diario
-            if not gestor.puede_publicar_hoy(config['max_publicaciones_por_dia']):
-                print(f"\n⚠️  Límite diario alcanzado. Deteniendo publicación.")
-                break
+        if exito:
+            # Avanzar al siguiente artículo
+            siguiente = (numero_articulo % total_articulos) + 1
+            guardar_numero_config(siguiente)
+            print(f"\n➡️  Próxima vez se publicará: Articulo_{siguiente}")
             
-            exito = publicar_articulo_individual(numero, publicador, gestor, config)
-            
-            if exito:
-                publicaciones_exitosas += 1
-                
-                # Calcular siguiente número (con rotación)
-                total = contar_articulos()
-                siguiente = numero + 1 if numero < total else 1
-                guardar_numero_config(siguiente)
-            else:
-                publicaciones_fallidas += 1
-        
-        # Resumen final
-        print("\n" + "="*60)
-        print("📊 RESUMEN DE PUBLICACIÓN")
-        print("="*60)
-        print(f"✅ Exitosas: {publicaciones_exitosas}")
-        print(f"❌ Fallidas: {publicaciones_fallidas}")
-        print(f"📅 Publicadas hoy: {gestor.registro['publicaciones_hoy']}/{config['max_publicaciones_por_dia']}")
-        print("="*60)
-        
-        # Mostrar estadísticas actualizadas
-        gestor.mostrar_estadisticas()
-        
-        print("\n⏳ Esperando 2 segundos...")
-        time.sleep(2)
-        
-    except Exception as error:
-        print(f"❌ Error durante la publicación: {error}")
+            print("\n" + "="*60)
+            print("✅ PROCESO COMPLETADO EXITOSAMENTE")
+            print("="*60)
+        else:
+            print("\n" + "="*60)
+            print("❌ NO SE PUDO COMPLETAR LA PUBLICACIÓN")
+            print("="*60)
+    
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Proceso cancelado por el usuario")
+    
+    except Exception as e:
+        print(f"\n❌ Error inesperado: {e}")
         import traceback
         traceback.print_exc()
     
     finally:
         publicador.cerrar_navegador()
     
-    print("\n✅ Proceso finalizado\n")
+    input("\nPresiona Enter para salir...")
 
 
 if __name__ == "__main__":
