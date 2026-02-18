@@ -729,13 +729,16 @@ class ExtractorWhatsApp:
                 archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
                 os.makedirs(carpeta_articulo, exist_ok=True)
                 
+                # Escapar comillas en la descripción
+                descripcion_escapada = producto['descripcion'].replace('"', '\\"')
+                
                 plantilla = f"""titulo={producto['titulo']}
 precio={producto['precio']}
 marca=
 categoria=Electrónica e informática
 estado=Nuevo
 ubicacion=Guayaquil
-descripcion={producto['descripcion']}
+descripcion="{descripcion_escapada}"
 disponibilidad=Publicar como disponible
 encuentro_publico=Si
 etiquetas=
