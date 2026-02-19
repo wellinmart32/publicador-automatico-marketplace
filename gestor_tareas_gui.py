@@ -190,9 +190,10 @@ class GestorTareasGUI:
             tareas_encontradas = False
             for linea in lineas[1:]:  # Skip header
                 partes = linea.split('","')
-                if len(partes) >= 2:
+                if len(partes) >= 3:
                     nombre = partes[0].replace('"', '').strip()
-                    estado = partes[1].replace('"', '').strip() if len(partes) > 1 else 'N/A'
+                    # En español: columna 0=nombre, 1=próxima ejecución, 2=estado
+                    estado = partes[2].replace('"', '').strip() if len(partes) > 2 else 'N/A'
                     
                     # Solo nuestras tareas
                     if self.prefijo_tarea in nombre:

@@ -321,11 +321,10 @@ class PanelControl:
 
     def _gestionar_tareas(self):
         """Gestión de tareas automáticas"""
-        messagebox.showinfo(
-            "🗓️ Tareas Automáticas",
-            "Próximamente: Interfaz para gestionar tareas programadas de Windows.\n\n"
-            "Por ahora, usa el configurador de consola."
-        )
+        try:
+            subprocess.Popen(['python', 'gestor_tareas_gui.py'])
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"No se pudo abrir el gestor de tareas:\n{e}")
 
     def _mostrar_notificacion(self, titulo, mensaje, duracion=3000, color="#198754"):
         """Muestra notificación Toast que se cierra sola"""
