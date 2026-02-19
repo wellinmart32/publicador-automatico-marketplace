@@ -61,115 +61,112 @@ class GestorLicencias:
             return False
 
     def _obtener_cache_local(self):
-        """Obtiene los datos de licencia del cache local"""
+        """Obtiene la información de cache local"""
         try:
             if self.archivo_config.exists():
                 with open(self.archivo_config, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                    datos = json.load(f)
+                    
+                    if 'datos_licencia' in datos:
+                        cache = datos['datos_licencia']
+                        
+                        # Si es developer permanente, siempre es válido
+                        if cache.get('es_developer_permanente'):
+                            return cache
+                        
+                        # Para otras licencias, verificar si el cache expiró
+                        fecha_verificacion = cache.get('fecha_verificacion')
+                        if fecha_verificacion:
+                            fecha_cache = datetime.fromisoformat(fecha_verificacion)
+                            dias_desde_verificacion = (datetime.now() - fecha_cache).days
+                            
+                            if dias_desde_verificacion <= self.dias_revalidacion:
+                                return cache
         except Exception as e:
-            print(f"Error leyendo cache local: {e}")
+            print(f"Error leyendo cache: {e}")
+        
         return None
 
     def _guardar_cache_local(self, datos_licencia):
-        """Guarda los datos de licencia en cache local"""
+        """Guarda los datos de la licencia en cache local"""
         try:
             self.carpeta_config.mkdir(parents=True, exist_ok=True)
             
-            cache = self._obtener_cache_local() or {}
+            config = {}
+            if self.archivo_config.exists():
+                with open(self.archivo_config, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
             
-            codigo = datos_licencia.get('codigo', datos_licencia.get('codigoLicencia', ''))
-            
-            cache.update({
-                'codigo_licencia': codigo,
-                'tipo': datos_licencia.get('tipo', 'TRIAL'),
-                'valida': datos_licencia.get('valida', False),
-                'expirada': datos_licencia.get('expirada', False),
+            config['datos_licencia'] = {
+                'tipo': datos_licencia.get('tipo'),
+                'valida': datos_licencia.get('valida'),
+                'expirada': datos_licencia.get('expirada'),
                 'dias_restantes': datos_licencia.get('diasRestantes'),
                 'fecha_verificacion': datetime.now().isoformat(),
-                'es_developer_permanente': self._es_codigo_developer_permanente(codigo)
-            })
+                'es_developer_permanente': datos_licencia.get('developer_permanente', False)
+            }
             
             with open(self.archivo_config, 'w', encoding='utf-8') as f:
-                json.dump(cache, f, indent=2, ensure_ascii=False)
+                json.dump(config, f, indent=2, ensure_ascii=False)
             
             return True
         except Exception as e:
             print(f"Error guardando cache: {e}")
             return False
 
-    def _necesita_revalidacion(self, cache):
-        """Verifica si necesita re-validar contra el backend"""
-        if not cache or 'fecha_verificacion' not in cache:
-            return True
-        
-        # Códigos developer permanentes NUNCA necesitan revalidación
-        if cache.get('es_developer_permanente'):
-            return False
-        
-        try:
-            fecha_verificacion = datetime.fromisoformat(cache['fecha_verificacion'])
-            dias_pasados = (datetime.now() - fecha_verificacion).days
-            return dias_pasados >= self.dias_revalidacion
-        except:
-            return True
-
     def verificar_licencia(self, codigo_licencia, mostrar_mensajes=True):
         """
-        Verifica la licencia usando sistema de cache
+        Verifica la licencia contra el backend
         
-        Returns:
-            dict con estructura:
-            {
-                'tipo': 'TRIAL' | 'FULL',
-                'valida': True | False,
-                'expirada': True | False,
-                'diasRestantes': int | None,
-                'mensaje': str,
-                'desde_cache': True | False
-            }
-        """
+        CRÍTICO: Si el backend NO está disponible:
+        - CON cache válido → Acepta la licencia (modo offline)
+        - SIN cache válido → RECHAZA TODO (seguridad)
         
-        # CASO ESPECIAL: Código developer permanente
-        if self._es_codigo_developer_permanente(codigo_licencia):
-            if mostrar_mensajes:
-                print("👑 Código developer permanente detectado")
+        Args:
+            codigo_licencia: Código a verificar
+            mostrar_mensajes: Si mostrar mensajes de debug
             
-            # Guardar en cache
-            self._guardar_cache_local({
-                'codigo': codigo_licencia,
+        Returns:
+            dict: Información de la licencia
+        """
+        # Verificar si es código developer master (funciona sin backend)
+        if self._es_codigo_developer_permanente(codigo_licencia):
+            datos_permanente = {
                 'tipo': 'FULL',
                 'valida': True,
                 'expirada': False,
-                'diasRestantes': None
-            })
+                'diasRestantes': 999,
+                'developer_permanente': True
+            }
+            self._guardar_cache_local(datos_permanente)
+            
+            if mostrar_mensajes:
+                print("👑 Licencia MASTER permanente activada")
             
             return {
                 'tipo': 'FULL',
                 'valida': True,
                 'expirada': False,
-                'diasRestantes': None,
-                'mensaje': 'Licencia developer permanente',
+                'diasRestantes': 999,
+                'mensaje': 'Licencia MASTER permanente',
                 'desde_cache': False,
                 'developer_permanente': True
             }
         
-        # Verificar cache local
+        # Intentar usar cache si está disponible
         cache = self._obtener_cache_local()
         
-        # Si existe cache y no necesita revalidación, usar cache
-        if cache and not self._necesita_revalidacion(cache):
+        if cache and cache.get('valida') and cache.get('es_developer_permanente'):
+            # Developer permanente siempre válido desde cache
             if mostrar_mensajes:
-                if cache.get('es_developer_permanente'):
-                    print("👑 Licencia developer permanente (cache)")
-                else:
-                    print("✅ Usando licencia en cache (verificada recientemente)")
+                print("👑 Licencia MASTER desde cache")
             
             return {
-                'tipo': cache.get('tipo', 'TRIAL'),
+                'tipo': cache.get('tipo', 'FULL'),
                 'valida': cache.get('valida', False),
                 'expirada': cache.get('expirada', False),
                 'diasRestantes': cache.get('dias_restantes'),
-                'mensaje': 'Licencia válida (desde cache local)',
+                'mensaje': 'Licencia MASTER (desde cache local)',
                 'desde_cache': True,
                 'developer_permanente': cache.get('es_developer_permanente', False)
             }
@@ -212,17 +209,19 @@ class GestorLicencias:
                 raise Exception(f"Error del servidor: {response.status_code}")
                 
         except requests.exceptions.ConnectionError:
-            # Backend no disponible - usar cache si existe
+            # Backend no disponible
             if cache and cache.get('valida'):
+                # SI hay cache válido → Modo offline permitido
                 if mostrar_mensajes:
                     print("⚠️  Backend no disponible. Usando cache local.")
                 
-                # Extender fecha de verificación para no reintentar cada día
-                # (excepto para developer que ya nunca revalida)
+                # Extender fecha de verificación
                 if not cache.get('es_developer_permanente'):
                     cache['fecha_verificacion'] = datetime.now().isoformat()
                     with open(self.archivo_config, 'w', encoding='utf-8') as f:
-                        json.dump(cache, f, indent=2, ensure_ascii=False)
+                        config = json.load(open(self.archivo_config, 'r', encoding='utf-8'))
+                        config['datos_licencia'] = cache
+                        json.dump(config, f, indent=2, ensure_ascii=False)
                 
                 return {
                     'tipo': cache.get('tipo', 'TRIAL'),
@@ -234,21 +233,23 @@ class GestorLicencias:
                     'developer_permanente': cache.get('es_developer_permanente', False)
                 }
             else:
+                # SIN cache válido → RECHAZAR TODO (SEGURIDAD)
                 if mostrar_mensajes:
-                    print("❌ No se pudo verificar la licencia y no hay cache disponible")
+                    print("❌ Backend no disponible y no hay cache válido")
+                    print("❌ No se puede verificar la licencia")
                 
                 return {
                     'tipo': 'TRIAL',
                     'valida': False,
                     'expirada': False,
                     'diasRestantes': None,
-                    'mensaje': 'No se pudo verificar la licencia. Backend no disponible.',
+                    'mensaje': 'No se pudo verificar la licencia. Servidor no disponible.',
                     'desde_cache': False,
                     'developer_permanente': False
                 }
                 
         except requests.exceptions.Timeout:
-            # Timeout - usar cache si existe
+            # Timeout
             if cache and cache.get('valida'):
                 if mostrar_mensajes:
                     print("⚠️  Timeout al verificar. Usando cache local.")
@@ -257,7 +258,9 @@ class GestorLicencias:
                 if not cache.get('es_developer_permanente'):
                     cache['fecha_verificacion'] = datetime.now().isoformat()
                     with open(self.archivo_config, 'w', encoding='utf-8') as f:
-                        json.dump(cache, f, indent=2, ensure_ascii=False)
+                        config = json.load(open(self.archivo_config, 'r', encoding='utf-8'))
+                        config['datos_licencia'] = cache
+                        json.dump(config, f, indent=2, ensure_ascii=False)
                 
                 return {
                     'tipo': cache.get('tipo', 'TRIAL'),
@@ -283,7 +286,7 @@ class GestorLicencias:
                 }
                 
         except Exception as e:
-            # Error general - usar cache si existe
+            # Error general
             if cache and cache.get('valida'):
                 if mostrar_mensajes:
                     print(f"⚠️  Error al verificar ({e}). Usando cache local.")
@@ -292,7 +295,9 @@ class GestorLicencias:
                 if not cache.get('es_developer_permanente'):
                     cache['fecha_verificacion'] = datetime.now().isoformat()
                     with open(self.archivo_config, 'w', encoding='utf-8') as f:
-                        json.dump(cache, f, indent=2, ensure_ascii=False)
+                        config = json.load(open(self.archivo_config, 'r', encoding='utf-8'))
+                        config['datos_licencia'] = cache
+                        json.dump(config, f, indent=2, ensure_ascii=False)
                 
                 return {
                     'tipo': cache.get('tipo', 'TRIAL'),
@@ -304,8 +309,10 @@ class GestorLicencias:
                     'developer_permanente': cache.get('es_developer_permanente', False)
                 }
             else:
+                # SIN cache → RECHAZAR (CRÍTICO PARA SEGURIDAD)
                 if mostrar_mensajes:
                     print(f"❌ Error: {e}")
+                    print("❌ No hay cache válido, licencia rechazada")
                 
                 return {
                     'tipo': 'TRIAL',
@@ -398,6 +405,6 @@ if __name__ == "__main__":
     print(f"Resultado: {resultado}\n")
     
     # Opción 2: Probar con código developer
-    print("2. Probando código LIC-DEV-WELLI-001...")
-    resultado = gestor.verificar_licencia("LIC-DEV-WELLI-001")
+    print("2. Probando código LIC-MASTER-WELLI...")
+    resultado = gestor.verificar_licencia("LIC-MASTER-WELLI")
     print(f"Resultado: {resultado}\n")
