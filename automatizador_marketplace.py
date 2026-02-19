@@ -17,36 +17,30 @@ from dialogos_licencia import DialogosLicencia
 
 def verificar_licencia_inicio():
     """Verificar licencia al iniciar la aplicación"""
-    gestor_lic = GestorLicencias("Marketplace")
-    resultado = gestor_lic.verificar_e_iniciar()
+    gestor = GestorLicencias("Marketplace")
+    codigo_guardado = gestor.obtener_codigo_guardado()
     
-    # Primera vez - solicitar código
-    if resultado.get('necesita_ingreso'):
+    if not codigo_guardado:
         codigo = DialogosLicencia.solicitar_codigo_licencia()
-        
-        if not codigo:
-            DialogosLicencia.mostrar_error("Necesitas un código de licencia para usar la aplicación")
+        if codigo:
+            gestor.guardar_codigo_licencia(codigo)
+            codigo_guardado = codigo
+        else:
+            print("❌ No se ingresó código de licencia")
             return None
-        
-        gestor_lic.guardar_codigo_licencia(codigo)
-        resultado = gestor_lic.verificar_e_iniciar()
     
-    # Error en verificación
-    if resultado.get('error'):
-        DialogosLicencia.mostrar_error(resultado.get('mensaje'))
+    resultado = gestor.verificar_licencia(codigo_guardado)
+    
+    if not resultado['valida']:
+        DialogosLicencia.mostrar_trial_expirado()
         return None
     
-    # Trial expirado
-    if resultado.get('expirado'):
-        DialogosLicencia.mostrar_trial_expirado(resultado.get('codigo'))
-        return None
-    
-    # Trial activo
-    if resultado.get('tipo') == 'TRIAL':
-        DialogosLicencia.mostrar_banner_trial(resultado.get('dias_restantes'))
-    
-    # Full
-    if resultado.get('tipo') == 'FULL':
+    if resultado.get('developer_permanente'):
+        print("\n👑 Código developer permanente detectado")
+        print("✅ Licencia completa activada - Todas las funciones desbloqueadas\n")
+    elif resultado['tipo'] == 'TRIAL':
+        DialogosLicencia.mostrar_banner_trial(resultado.get('diasRestantes', 0))
+    else:
         print("\n✅ Licencia completa activada - Todas las funciones desbloqueadas\n")
     
     return resultado
@@ -178,7 +172,15 @@ def main():
     finally:
         publicador.cerrar_navegador()
     
-    input("\nPresiona Enter para salir...")
+    print("\n" + "="*70)
+    print("✅ Proceso completado - La ventana se cerrará en 10 segundos...")
+    print("="*70)
+
+    import time
+    for i in range(10, 0, -1):
+        print(f"\rCerrando en {i} segundos...", end='', flush=True)
+        time.sleep(1)
+    print("\r" + " " * 50 + "\r", end='')
 
 
 if __name__ == "__main__":

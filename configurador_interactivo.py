@@ -195,49 +195,69 @@ class ConfiguradorInteractivo:
             self.limpiar_pantalla()
             self.mostrar_header()
             self.mostrar_config_actual()
-            
+
             print("=" * 70)
-            print("\n🔧 OPCIONES DE CONFIGURACIÓN:\n")
-            print("  0. 🔄 REINICIAR SISTEMA DESDE CERO")
-            print("  1. ⚙️  Configuración General")
-            print("  2. 📱 Configuración de Extracción (WhatsApp)")
-            print("  3. 🚀 Configuración de Publicación (Marketplace)")
-            print("  4. 🔒 Configuración de Seguridad")
-            print("  5. 📄 Ver configuración completa")
-            print("  6. 💾 Guardar y salir")
-            print("  7. ❌ Salir sin guardar")
+            print("\n🔧 OPCIONES:\n")
+            print("  0.  🔄 Reiniciar sistema desde cero")
+            print("  1.  ⚙️  Configuración General")
+            print("  2.  📝 Configuración de Contenido (Artículos)")
+            print("  3.  🚀 Configuración de Publicación")
+            print("  4.  📱 Configuración de WhatsApp (Extracción)")
+            print("  5.  🌐 Configuración de Navegador")
+            print("  6.  🔒 Configuración de Seguridad")
+            print("  7.  📋 Ver configuración completa")
+            print("  8.  🗓️  Gestión de Tareas Automáticas [FULL]")
+            print("  9.  💾 Guardar y salir")
+            print("  10. ❌ Salir sin guardar")
+            print("\n" + "─" * 70)
+            print("  🖥️  INTERFACES GRÁFICAS:\n")
+            print("  G.  🎨 Abrir Configurador Gráfico")
+            print("  A.  📦 Abrir Gestor de Artículos")
             print("\n" + "=" * 70)
-            
-            opcion = input("\n👉 Selecciona una opción (0-7): ").strip()
-            
+            print("  ?   ❓ Ayuda - ¿Qué hace cada opción?")
+            print("\n" + "=" * 70)
+
+            opcion = input("\n👉 Selecciona opción: ").strip()
+
             if opcion == '0':
                 self.reiniciar_sistema_completo()
             elif opcion == '1':
                 self.menu_general()
             elif opcion == '2':
-                self.menu_extraccion()
+                self.menu_contenido()
             elif opcion == '3':
                 self.menu_publicacion()
             elif opcion == '4':
-                self.menu_seguridad()
+                self.menu_whatsapp()
             elif opcion == '5':
-                input("\nPresiona Enter para continuar...")
+                self.menu_navegador()
             elif opcion == '6':
+                self.menu_seguridad()
+            elif opcion == '7':
+                self.mostrar_config_actual()
+                input("\nPresiona Enter para volver...")
+            elif opcion == '8':
+                self.menu_tareas_automaticas()
+            elif opcion == '9':
                 if self.cambios_realizados:
                     self.guardar_config()
-                    print("\n✅ Configuración guardada. Cambios aplicados.")
                 else:
                     print("\n✅ No hay cambios para guardar.")
                 input("\nPresiona Enter para salir...")
                 break
-            elif opcion == '7':
+            elif opcion == '10':
                 if self.cambios_realizados:
-                    confirmar = input("\n⚠️  Hay cambios sin guardar. ¿Salir de todos modos? (si/no): ")
+                    confirmar = input("\n⚠️  Hay cambios sin guardar. ¿Salir? (si/no): ")
                     if confirmar.lower() in ['si', 'sí', 's']:
-                        print("\n❌ Cambios descartados.")
                         break
                 else:
                     break
+            elif opcion.upper() == 'G':
+                self.abrir_configurador_grafico()
+            elif opcion.upper() == 'A':
+                self.abrir_gestor_articulos()
+            elif opcion == '?':
+                self.mostrar_ayuda()
             else:
                 print("\n❌ Opción inválida")
                 input("Presiona Enter para continuar...")
@@ -470,6 +490,30 @@ class ConfiguradorInteractivo:
                 print(f"   {resultado}")
         
         input("\n✅ Presiona Enter para volver al menú principal...")
+
+    def abrir_configurador_grafico(self):
+        """Abre el configurador gráfico"""
+        print("\n🎨 Abriendo configurador gráfico...")
+        try:
+            import subprocess
+            subprocess.Popen(['python', 'configurador_gui.py'])
+            print("✅ Configurador gráfico abierto en nueva ventana")
+            input("\nPresiona Enter para continuar...")
+        except Exception as e:
+            print(f"❌ Error al abrir configurador gráfico: {e}")
+            input("\nPresiona Enter para continuar...")
+
+    def abrir_gestor_articulos(self):
+        """Abre el gestor de artículos"""
+        print("\n📦 Abriendo gestor de artículos...")
+        try:
+            import subprocess
+            subprocess.Popen(['python', 'gestor_articulos_gui.py'])
+            print("✅ Gestor de artículos abierto en nueva ventana")
+            input("\nPresiona Enter para continuar...")
+        except Exception as e:
+            print(f"❌ Error al abrir gestor de artículos: {e}")
+            input("\nPresiona Enter para continuar...")
     
     def ejecutar(self):
         """Ejecuta el configurador"""

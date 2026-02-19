@@ -16,7 +16,20 @@ class ConfiguradorGUI:
         self.root.geometry("600x520")
         self.root.resizable(False, False)
         self.root.configure(bg="#f0f0f0")
-        self.root.eval('tk::PlaceWindow . center')
+
+        # Ocultar ventana mientras se configura
+        self.root.withdraw()
+        
+        # Centrar ventana correctamente
+        self.root.update_idletasks()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.root.winfo_screenheight() // 2) - (height // 2)
+        self.root.geometry(f'{width}x{height}+{x}+{y}')
+        
+        # Mostrar ventana ya centrada
+        self.root.deiconify()
 
         self._cargar_config()
         self._construir_ui()
