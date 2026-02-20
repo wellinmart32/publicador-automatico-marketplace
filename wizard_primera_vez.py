@@ -566,28 +566,30 @@ class WizardPrimeraVez:
             command=self._usar_ejemplos
         ).pack(anchor='w', padx=15, pady=(0, 10))
 
-        # Botones - CON MÁS PADDING Y ALTURA
-        frame_btn = tk.Frame(self.root, bg="#f0f0f0", pady=20)
+        # Botones
+        frame_btn = tk.Frame(self.root, bg="#f0f0f0", pady=15)
         frame_btn.pack(fill='x', side='bottom')
 
         tk.Button(
             frame_btn,
             text="◀️ Atrás",
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 11),
             bg="#e0e0e0",
             width=12,
+            height=2,
             command=self._anterior
-        ).pack(side='left', padx=(40, 10), ipady=30)
+        ).pack(side='left', padx=(40, 10))
 
         tk.Button(
             frame_btn,
             text="Siguiente ▶️",
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg="#28a745",
             fg="white",
             width=12,
+            height=2,
             command=self._verificar_mensajes
-        ).pack(side='right', padx=(10, 40), ipady=30)
+        ).pack(side='right', padx=(10, 40))
 
     def _paso_finalizar(self):
         """Paso 4: Finalizar configuración"""
