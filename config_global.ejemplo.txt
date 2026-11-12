@@ -1,5 +1,7 @@
 # ============================================================
 # CONFIGURACIÓN GLOBAL - MARKETPLACE AUTOMÁTICO
+# Plantilla: el instalador la copia como config_global.txt solo en instalaciones nuevas.
+# config_global.txt es personal de cada equipo y no se sube a GitHub.
 # ============================================================
 
 [GENERAL]

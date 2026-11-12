@@ -1,66 +1,248 @@
 # ============================================================
-# DATOS GENERADOS AUTOMÁTICAMENTE
+# .gitignore - Marketplace Automático
 # ============================================================
 
-# Imágenes descargadas de WhatsApp
-ArticulosMarketplace/*/imagenes/*
-!ArticulosMarketplace/*/imagenes/.gitkeep
+# ============================================================
+# ARCHIVOS DE DATOS SENSIBLES
+# ============================================================
 
-# Datos extraídos (se regeneran al ejecutar)
-ArticulosMarketplace/*/datos.txt
-
-# Registro de publicaciones
+# Ignorar registro de publicaciones (contiene historial)
 registro_publicaciones.json
 
-# Perfiles del navegador
+# Ignorar configuración propia de cada tarea automática y su registro de ejecuciones
+tareas_programadas.json
+registro_tareas.log
+aviso_actualizacion.json
+
+# Ignorar configuración personal (navegador, contacto de WhatsApp de cada equipo)
+# El instalador y el desarrollo parten de config_global.ejemplo.txt
+config_global.txt
+
+# Ignorar estado de las conversaciones con interesados (datos personales)
+conversaciones_marketplace.json
+
+# Ignorar productos propios de cada usuario (imágenes, datos y rotación)
+# Solo se mantienen las carpetas con .gitkeep
+ArticulosMarketplace/*/imagenes/*
+!ArticulosMarketplace/*/imagenes/.gitkeep
+ArticulosMarketplace/*/datos.txt
+ArticulosMarketplace/config.txt
+
+# Ignorar carpeta de perfiles de navegador (contiene sesiones)
 perfiles/
 
-# Backups generados
+# Ignorar respaldos generados
 backups/
 
+# Instalador compilado (binario grande, se regenera)
+installer_output/
+
 # ============================================================
-# PYTHON
+# ARCHIVOS DE PYTHON
 # ============================================================
 
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Virtual environments
 venv/
+ENV/
 env/
-.env
+.venv
 
 # ============================================================
-# SISTEMA OPERATIVO
+# ARCHIVOS TEMPORALES Y DE DESARROLLO
 # ============================================================
 
-.DS_Store
+# Archivos temporales de desarrollo
+*_BACKUP.py
+*_OLD.py
+*_TEST.py
+*_TEMP.py
+
+# Archivos de respaldo
+*.bak
+*.backup
+*.tmp
+*~
+
+# Screenshots de debug
+capturas/
+*.png
+
+# ============================================================
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# ============================================================
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
 *.stackdump
 [Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
 
 # ============================================================
-# IDEs
+# IDEs Y EDITORES
 # ============================================================
 
+# Visual Studio Code
 .vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# PyCharm
 .idea/
 *.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
 
 # ============================================================
-# LOGS Y TEMPORALES
+# ARCHIVOS DE CONFIGURACIÓN LOCAL
 # ============================================================
 
-*.log
-*.tmp
-*.bak
+.env
+.env.local
+
+# ============================================================
+# MANTENER MÓDULOS EN GIT
+# ============================================================
+
+!compartido/__init__.py
+!extractores/__init__.py
+!publicadores/__init__.py
+
+# Mantener .gitkeep en carpetas importantes
+!ArticulosMarketplace/*/imagenes/.gitkeep
+
+# ============================================================
+# OTROS
+# ============================================================
+
+# Logs de Chrome/Firefox/Selenium
 chromedriver.log
 geckodriver.log
-error_publicacion.png
+selenium-debug.log
 
-# ============================================================
-# ARCHIVOS SENSIBLES
-# ============================================================
+# Drivers de navegador: Selenium Manager descarga la versión compatible automáticamente
+geckodriver.exe
+chromedriver.exe
 
-config_local.txt
-secrets.txt
-.env.local
+# Node modules
+node_modules/
+
+# Archivos de base de datos
+*.db
+*.sqlite
+*.sqlite3
