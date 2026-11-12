@@ -1,9 +1,14 @@
 import os
 import tkinter as tk
+from compartido.toast import Toast
 from tkinter import ttk, messagebox
 import configparser
 import re
+import sys
 import subprocess
+import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from gestor_licencias import GestorLicencias
 
 
@@ -11,21 +16,41 @@ class WizardPrimeraVez:
     """Wizard de configuración inicial para primera ejecución"""
 
     def __init__(self):
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('AutomaPro.WizardMarketplace')
+        except Exception:
+            pass
+
         self.root = tk.Tk()
+        self.root.withdraw()
+
         self.root.title("🎉 Bienvenido - Marketplace Automático")
-        self.root.geometry("600x500")
         self.root.resizable(False, False)
         self.root.configure(bg="#f0f0f0")
-        
-        # Centrar ventana
-        self.root.withdraw()
-        self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
+
+        try:
+            base_ico = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+            self.root.iconbitmap(os.path.join(base_ico, 'iconos', 'wizard.ico'))
+        except Exception:
+            pass
+
+        width = 600
+        height = 500
         x = (self.root.winfo_screenwidth() // 2) - (width // 2)
         y = (self.root.winfo_screenheight() // 2) - (height // 2)
         self.root.geometry(f'{width}x{height}+{x}+{y}')
-        self.root.deiconify()
+        # NO hacer deiconify aquí — se hará solo si necesita mostrar el wizard
+
+        # Reaplicar icono múltiples veces para garantizar que Windows lo aplique
+        try:
+            base_ico = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+            ico = os.path.join(base_ico, 'iconos', 'wizard.ico')
+            self.root.after(100, lambda: self.root.iconbitmap(ico))
+            self.root.after(300, lambda: self.root.iconbitmap(ico))
+            self.root.after(500, lambda: self.root.iconbitmap(ico))
+        except Exception:
+            pass
 
         self.paso_actual = 0
         self.datos_config = {
@@ -34,10 +59,30 @@ class WizardPrimeraVez:
             'usar_perfil': 'si',
             'usar_ejemplos': False
         }
-        self.gestor_licencias = GestorLicencias()
+        self.gestor_licencias = GestorLicencias("Marketplace")
         self.licencia_validada = False
         self.tipo_licencia = None
 
+        # Si ya existe configuración, lanzar Panel de Control directamente sin mostrar wizard
+        if self.gestor_licencias.obtener_codigo_guardado():
+            try:
+                if getattr(sys, 'frozen', False):
+                    base_dir = os.path.dirname(sys.executable)
+                    panel = os.path.join(base_dir, "PanelControl.exe")
+                else:
+                    panel = os.path.join(os.path.dirname(os.path.abspath(__file__)), "panel_control.py")
+                if os.path.exists(panel):
+                    if panel.endswith('.exe'):
+                        subprocess.Popen([panel])
+                    else:
+                        subprocess.Popen([sys.executable, panel])
+            except Exception:
+                pass
+            self.root.after(100, self.root.destroy)
+            return
+
+        # Solo mostrar el wizard si no hay configuración previa
+        self.root.deiconify()
         self._mostrar_paso()
 
     def _limpiar_ventana(self):
@@ -56,7 +101,7 @@ class WizardPrimeraVez:
         elif self.paso_actual == 2:
             self._paso_configuracion()
         elif self.paso_actual == 3:
-            self._paso_mensajes()
+            self._paso_productos()
         elif self.paso_actual == 4:
             self._paso_finalizar()
 
@@ -79,7 +124,7 @@ class WizardPrimeraVez:
 
         tk.Label(
             frame,
-            text="Esta aplicación publica productos en Facebook Marketplace de forma automática.",
+            text="Esta aplicación publica tus productos\nen Facebook Marketplace de forma automática.",
             font=("Segoe UI", 12),
             bg="#f0f0f0",
             justify='center'
@@ -98,9 +143,9 @@ class WizardPrimeraVez:
             frame,
             text="✨ Características:\n\n"
                  "• Publicación automática en Marketplace\n"
-                 "• Extracción de catálogo de WhatsApp Business\n"
-                 "• Gestión inteligente de productos\n"
-                 "• Programación de tareas (versión FULL)",
+                 "• Rotación de productos con imágenes\n"
+                 "• Catálogo de WhatsApp y atención de interesados\n"
+                 "• Programación de tareas (Versión Completa)",
             font=("Segoe UI", 10),
             bg="#f0f0f0",
             justify='left'
@@ -135,13 +180,63 @@ class WizardPrimeraVez:
 
         # Contenido
         frame = tk.Frame(self.root, bg="#f0f0f0")
-        frame.pack(fill='both', expand=True, padx=40, pady=30)
+        frame.pack(fill='both', expand=True, padx=40, pady=20)
+
+        # Campo email
+        tk.Label(
+            frame,
+            text="Paso 1 — Ingresa tu email de AutomaPro:",
+            font=("Segoe UI", 11, "bold"),
+            bg="#f0f0f0"
+        ).pack(anchor='w', pady=(0, 5))
+
+        frame_email = tk.Frame(frame, bg="#f0f0f0")
+        frame_email.pack(fill='x', pady=(0, 5))
+
+        self.entry_email = tk.Entry(
+            frame_email,
+            font=("Segoe UI", 11),
+            width=28,
+            justify='center'
+        )
+        self.entry_email.pack(side='left', padx=(0, 5))
+        self.entry_email.focus()
+
+        self.btn_verificar_email = tk.Button(
+            frame_email,
+            text="Verificar",
+            font=("Segoe UI", 9, "bold"),
+            bg="#198754",
+            fg="white",
+            command=self._verificar_email_wizard
+        )
+        self.btn_verificar_email.pack(side='left')
+
+        self.label_estado_email = tk.Label(
+            frame,
+            text="",
+            font=("Segoe UI", 9),
+            bg="#f0f0f0"
+        )
+        self.label_estado_email.pack(anchor='w', pady=(0, 15))
+
+        # Separador
+        tk.Frame(frame, bg="#e0e0e0", height=1).pack(fill='x', pady=(0, 15))
+
+        # Campo código — deshabilitado hasta verificar email
+        tk.Label(
+            frame,
+            text="Paso 2 — ¿Tienes licencia completa? Ingresa tu código:",
+            font=("Segoe UI", 11, "bold"),
+            bg="#f0f0f0"
+        ).pack(anchor='w', pady=(0, 5))
 
         tk.Label(
             frame,
-            text="Ingresa tu código de licencia:",
-            font=("Segoe UI", 11, "bold"),
-            bg="#f0f0f0"
+            text="Si no tienes código, usa el botón 'Usar Prueba' abajo.",
+            font=("Segoe UI", 9),
+            bg="#f0f0f0",
+            fg="gray"
         ).pack(anchor='w', pady=(0, 10))
 
         # Frame para el entry y el formato
@@ -152,10 +247,10 @@ class WizardPrimeraVez:
             entry_frame,
             font=("Segoe UI", 12, "bold"),
             width=20,
-            justify='center'
+            justify='center',
+            state='disabled'
         )
         self.entry_licencia.pack()
-        self.entry_licencia.focus()
         
         # Label de formato esperado
         self.label_formato = tk.Label(
@@ -226,8 +321,8 @@ class WizardPrimeraVez:
 
         tk.Label(
             frame,
-            text="Si no tienes código, puedes usar la versión TRIAL\n"
-                 "(limitada a 5 publicaciones por día)",
+            text="Si no tienes código, puedes usar la versión Prueba\n"
+                 "(con las funciones básicas)",
             font=("Segoe UI", 9),
             bg="#f0f0f0",
             fg="gray",
@@ -247,14 +342,15 @@ class WizardPrimeraVez:
             command=self._anterior
         ).pack(side='left', padx=(40, 10))
 
-        tk.Button(
+        self.btn_usar_prueba = tk.Button(
             frame_btn,
-            text="Usar TRIAL",
+            text="Usar Prueba",
             font=("Segoe UI", 10),
             bg="#ffc107",
             width=12,
             command=self._usar_trial
-        ).pack(side='left', padx=10)
+        )
+        self.btn_usar_prueba.pack(side='left', padx=10)
 
         tk.Button(
             frame_btn,
@@ -297,28 +393,33 @@ class WizardPrimeraVez:
                     base_path = Path(os.environ.get('USERPROFILE', '~'))
                 else:
                     base_path = Path.home()
+
+                # Limpiar cache principal
                 archivo_config = base_path / '.config' / 'AutomaPro' / 'Marketplace' / 'config.json'
-                
                 if archivo_config.exists():
                     with open(archivo_config, 'r', encoding='utf-8') as f:
                         config = json.load(f)
-                    # Eliminar cache de licencia pero mantener código guardado
                     if 'datos_licencia' in config:
                         del config['datos_licencia']
                         with open(archivo_config, 'w', encoding='utf-8') as f:
                             json.dump(config, f, indent=2, ensure_ascii=False)
+
+                # Limpiar cache de respaldo en AppData
+                archivo_respaldo = Path(os.environ.get('LOCALAPPDATA', '~')) / 'AutomaPro' / 'Marketplace' / 'lic.json'
+                if archivo_respaldo.exists():
+                    archivo_respaldo.unlink()
             except:
                 pass
-            
+       
             # Verificar contra backend (sin cache)
-            resultado = self.gestor_licencias.verificar_licencia(codigo_formateado, mostrar_mensajes=False)
+            resultado = self.gestor_licencias.verificar_licencia(codigo_formateado, mostrar_mensajes=False, forzar_backend=True)
             
             if resultado['valida']:
                 if resultado.get('developer_permanente'):
                     # Licencia MASTER - OCULTAR que es MASTER
                     self.label_formato.config(
                         fg="#28a745",
-                        text="✅ LICENCIA FULL VÁLIDA"
+                        text="✅ LICENCIA COMPLETA VÁLIDA"
                     )
                     self.licencia_validada = True
                     self.tipo_licencia = 'MASTER'
@@ -326,7 +427,7 @@ class WizardPrimeraVez:
                     # Licencia FULL
                     self.label_formato.config(
                         fg="#28a745",
-                        text="✅ LICENCIA FULL VÁLIDA"
+                        text="✅ LICENCIA COMPLETA VÁLIDA"
                     )
                     self.licencia_validada = True
                     self.tipo_licencia = 'FULL'
@@ -335,7 +436,7 @@ class WizardPrimeraVez:
                     dias = resultado.get('diasRestantes', 0)
                     self.label_formato.config(
                         fg="#ffc107",
-                        text=f"✅ LICENCIA TRIAL ({dias} días restantes)"
+                        text=f"✅ LICENCIA PRUEBA ({dias} días restantes)"
                     )
                     self.licencia_validada = True
                     self.tipo_licencia = 'TRIAL'
@@ -366,7 +467,6 @@ class WizardPrimeraVez:
 
     def _paso_configuracion(self):
         """Paso 2: Configuración básica"""
-        # Header
         header = tk.Frame(self.root, bg="#198754", pady=15)
         header.pack(fill='x')
         tk.Label(
@@ -377,7 +477,6 @@ class WizardPrimeraVez:
             fg="white"
         ).pack()
 
-        # Contenido
         frame = tk.Frame(self.root, bg="#f0f0f0")
         frame.pack(fill='both', expand=True, padx=40, pady=30)
 
@@ -388,28 +487,42 @@ class WizardPrimeraVez:
             bg="#f0f0f0"
         ).pack(anchor='w', pady=(0, 5))
 
-        self.var_navegador = tk.StringVar(value=self.datos_config.get('navegador', 'firefox'))
+        tk.Label(
+            frame,
+            text="(Se usará para Facebook Marketplace, Messenger y WhatsApp)",
+            font=("Segoe UI", 9),
+            bg="#f0f0f0",
+            fg="gray"
+        ).pack(anchor='w', pady=(0, 10))
+
+        self.var_navegador = tk.StringVar(value=self.datos_config.get('navegador', 'chrome'))
         frame_nav = tk.Frame(frame, bg="#f0f0f0")
-        frame_nav.pack(anchor='w', pady=(0, 20))
-        
+        frame_nav.pack(anchor='w', pady=(0, 25))
+
         tk.Radiobutton(
             frame_nav, text="Firefox",
             variable=self.var_navegador, value="firefox",
             bg="#f0f0f0", font=("Segoe UI", 10)
         ).pack(side='left', padx=(0, 20))
-        
+
         tk.Radiobutton(
             frame_nav, text="Chrome",
             variable=self.var_navegador, value="chrome",
+            bg="#f0f0f0", font=("Segoe UI", 10)
+        ).pack(side='left', padx=(0, 20))
+
+        tk.Radiobutton(
+            frame_nav, text="Edge",
+            variable=self.var_navegador, value="edge",
             bg="#f0f0f0", font=("Segoe UI", 10)
         ).pack(side='left')
 
         tk.Label(
             frame,
-            text="Usar tu sesión de Facebook guardada:",
+            text="Usar tu sesión guardada:",
             font=("Segoe UI", 11, "bold"),
             bg="#f0f0f0"
-        ).pack(anchor='w', pady=(20, 5))
+        ).pack(anchor='w', pady=(0, 5))
 
         tk.Label(
             frame,
@@ -417,25 +530,34 @@ class WizardPrimeraVez:
             font=("Segoe UI", 9),
             bg="#f0f0f0",
             fg="gray"
-        ).pack(anchor='w', pady=(0, 5))
+        ).pack(anchor='w', pady=(0, 10))
 
         self.var_perfil = tk.StringVar(value=self.datos_config.get('usar_perfil', 'si'))
         frame_perfil = tk.Frame(frame, bg="#f0f0f0")
         frame_perfil.pack(anchor='w', pady=(0, 20))
-        
+
         tk.Radiobutton(
             frame_perfil, text="Sí",
             variable=self.var_perfil, value="si",
             bg="#f0f0f0", font=("Segoe UI", 10)
         ).pack(side='left', padx=(0, 20))
-        
+
         tk.Radiobutton(
             frame_perfil, text="No",
             variable=self.var_perfil, value="no",
             bg="#f0f0f0", font=("Segoe UI", 10)
         ).pack(side='left')
 
-        # Botones
+        tk.Label(
+            frame,
+            text="Ciudad de tus publicaciones:",
+            font=("Segoe UI", 11, "bold"),
+            bg="#f0f0f0"
+        ).pack(anchor='w', pady=(0, 5))
+
+        self.var_ubicacion = tk.StringVar(value=self.datos_config.get('ubicacion', 'Guayaquil'))
+        tk.Entry(frame, textvariable=self.var_ubicacion, width=30, font=("Segoe UI", 10)).pack(anchor='w')
+
         frame_btn = tk.Frame(self.root, bg="#f0f0f0", pady=20)
         frame_btn.pack(fill='x', side='bottom')
 
@@ -458,14 +580,15 @@ class WizardPrimeraVez:
             command=self._guardar_config_basica
         ).pack(side='right', padx=(10, 40))
 
-    def _paso_mensajes(self):
-        """Paso 3: Catálogo de productos"""
+    def _paso_productos(self):
+        """Paso 3: Preparar los productos a publicar"""
+        from compartido.gestor_archivos import obtener_estadisticas_articulos
         # Header
         header = tk.Frame(self.root, bg="#198754", pady=15)
         header.pack(fill='x')
         tk.Label(
             header,
-            text="Paso 3 de 4: Catálogo",
+            text="Paso 3 de 4: Tus Productos",
             font=("Segoe UI", 14, "bold"),
             bg="#198754",
             fg="white"
@@ -475,21 +598,21 @@ class WizardPrimeraVez:
         frame = tk.Frame(self.root, bg="#f0f0f0")
         frame.pack(fill='both', expand=True, padx=40, pady=30)
 
-        # Verificar si ya hay productos
-        productos_existentes = len([f for f in os.listdir('productos') if f.endswith('.json')]) if os.path.exists('productos') else 0
+        stats = obtener_estadisticas_articulos()
+        listos = stats['articulos_listos']
 
-        if productos_existentes > 0:
+        if listos > 0:
             tk.Label(
                 frame,
-                text=f"✅ Ya tienes {productos_existentes} productos configurados",
+                text=f"✅ Ya tienes {listos} producto(s) listos para publicar",
                 font=("Segoe UI", 12, "bold"),
                 bg="#f0f0f0",
                 fg="#28a745"
             ).pack(pady=(0, 10))
-            
+
             tk.Label(
                 frame,
-                text="Puedes extraer más del catálogo o continuar con los que tienes.",
+                text="Puedes agregar más productos o continuar con los que tienes.",
                 font=("Segoe UI", 9),
                 bg="#f0f0f0",
                 fg="gray"
@@ -497,105 +620,106 @@ class WizardPrimeraVez:
         else:
             tk.Label(
                 frame,
-                text="¿Tienes productos en tu catálogo de WhatsApp?",
+                text="La aplicación necesita productos para publicar.",
                 font=("Segoe UI", 11),
                 bg="#f0f0f0"
             ).pack(pady=(0, 10))
-            
+
             tk.Label(
                 frame,
-                text="Elige una opción para continuar:",
+                text="Cada producto necesita título, precio y al menos una imagen.",
                 font=("Segoe UI", 9),
                 bg="#f0f0f0",
                 fg="gray"
             ).pack(pady=(0, 20))
 
-        # Opción 1: Extraer catálogo
+        # Opción 1: Gestor de productos
         frame_op1 = tk.Frame(frame, bg="white", relief='solid', borderwidth=1)
         frame_op1.pack(fill='x', pady=(0, 15), padx=20)
-        
+
         tk.Label(
             frame_op1,
-            text="📦 Extraer catálogo de WhatsApp",
+            text="🛍️ Crear o editar tus productos",
             font=("Segoe UI", 10, "bold"),
             bg="white"
         ).pack(anchor='w', padx=15, pady=(10, 5))
-        
+
         tk.Label(
             frame_op1,
-            text="Extrae productos de tu catálogo de WhatsApp Business",
+            text="Abre el gestor y llena título, precio, descripción e imágenes",
             font=("Segoe UI", 9),
             bg="white",
             fg="gray"
         ).pack(anchor='w', padx=15, pady=(0, 10))
-        
+
         tk.Button(
             frame_op1,
-            text="📲 Extraer Catálogo",
+            text="🖊️ Abrir Gestor de Productos",
             font=("Segoe UI", 9, "bold"),
             bg="#198754",
             fg="white",
-            command=self._abrir_gestor_mensajes
+            command=self._abrir_gestor_articulos
         ).pack(anchor='w', padx=15, pady=(0, 10))
 
-        # Opción 2: Ya tengo productos
-        frame_op2 = tk.Frame(frame, bg="white", relief='solid', borderwidth=1)
-        frame_op2.pack(fill='x', pady=(0, 15), padx=20)
-        
-        tk.Label(
-            frame_op2,
-            text="✅ Ya tengo productos configurados",
-            font=("Segoe UI", 10, "bold"),
-            bg="white"
-        ).pack(anchor='w', padx=15, pady=(10, 5))
-        
-        tk.Label(
-            frame_op2,
-            text="Continuar sin extraer (productos ya configurados manualmente)",
-            font=("Segoe UI", 9),
-            bg="white",
-            fg="gray"
-        ).pack(anchor='w', padx=15, pady=(0, 10))
-        
-        tk.Button(
-            frame_op2,
-            text="➡️ Continuar",
-            font=("Segoe UI", 9, "bold"),
-            bg="#28a745",
-            fg="white",
-            command=self._usar_ejemplos
-        ).pack(anchor='w', padx=15, pady=(0, 10))
+        if stats['total_articulos'] == 0:
+            # Opción 2: Crear carpetas (solo si no hay productos)
+            frame_op2 = tk.Frame(frame, bg="white", relief='solid', borderwidth=1)
+            frame_op2.pack(fill='x', pady=(0, 15), padx=20)
+
+            tk.Label(
+                frame_op2,
+                text="📁 Crear carpetas de productos",
+                font=("Segoe UI", 10, "bold"),
+                bg="white"
+            ).pack(anchor='w', padx=15, pady=(10, 5))
+
+            tk.Label(
+                frame_op2,
+                text="Crea 5 carpetas listas para poner tus imágenes y datos",
+                font=("Segoe UI", 9),
+                bg="white",
+                fg="gray"
+            ).pack(anchor='w', padx=15, pady=(0, 10))
+
+            tk.Button(
+                frame_op2,
+                text="✨ Crear Carpetas",
+                font=("Segoe UI", 9, "bold"),
+                bg="#28a745",
+                fg="white",
+                command=self._crear_carpetas_productos
+            ).pack(anchor='w', padx=15, pady=(0, 10))
 
         # Botones
-        frame_btn = tk.Frame(self.root, bg="#f0f0f0", pady=15)
+        frame_btn = tk.Frame(self.root, bg="#f0f0f0", pady=20)
         frame_btn.pack(fill='x', side='bottom')
 
         tk.Button(
             frame_btn,
             text="◀️ Atrás",
-            font=("Segoe UI", 11),
+            font=("Segoe UI", 10),
             bg="#e0e0e0",
             width=12,
-            height=2,
+            pady=2,
             command=self._anterior
         ).pack(side='left', padx=(40, 10))
 
         tk.Button(
             frame_btn,
             text="Siguiente ▶️",
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
             bg="#28a745",
             fg="white",
             width=12,
-            height=2,
-            command=self._verificar_mensajes
+            pady=2,
+            command=self._verificar_productos
         ).pack(side='right', padx=(10, 40))
 
     def _paso_finalizar(self):
         """Paso 4: Finalizar configuración"""
         # Ajustar tamaño de ventana según tipo de licencia
         if self.tipo_licencia in ['FULL', 'MASTER']:
-            nueva_altura = 720
+            nueva_altura = 620
         else:
             nueva_altura = 500
         
@@ -647,13 +771,14 @@ class WizardPrimeraVez:
         resumen_frame = tk.Frame(frame, bg="white", relief='solid', borderwidth=1)
         resumen_frame.pack(fill='x', pady=(0, 15))
 
-        licencia_texto = "TRIAL" if not self.datos_config['codigo_licencia'] else self.datos_config['codigo_licencia']
-        productos_count = len([f for f in os.listdir('productos') if f.endswith('.json')]) if os.path.exists('productos') else 0
+        licencia_texto = "Versión Completa ✅" if self.tipo_licencia in ['FULL', 'MASTER'] else "Período de Prueba (30 días)"
+        from compartido.gestor_archivos import obtener_estadisticas_articulos
+        productos_listos = obtener_estadisticas_articulos()['articulos_listos']
 
         items = [
             ("✅ Licencia:", licencia_texto),
             ("✅ Navegador:", self.datos_config['navegador'].capitalize()),
-            ("✅ Productos listos:", f"{productos_count} productos")
+            ("✅ Productos listos:", f"{productos_listos} productos")
         ]
 
         for label, valor in items:
@@ -671,7 +796,7 @@ class WizardPrimeraVez:
             # Título sección
             tk.Label(
                 frame,
-                text="🗓️ PROGRAMACIÓN AUTOMÁTICA (FULL)",
+                text="🗓️ PROGRAMACIÓN AUTOMÁTICA (VERSIÓN COMPLETA)",
                 font=("Segoe UI", 11, "bold"),
                 bg="#f0f0f0",
                 fg="#198754"
@@ -679,7 +804,7 @@ class WizardPrimeraVez:
             
             tk.Label(
                 frame,
-                text="¿Quieres que configuremos 4 publicaciones automáticas de productos?",
+                text="¿Quieres que configuremos 2 tareas automáticas de publicación de productos?",
                 font=("Segoe UI", 9),
                 bg="#f0f0f0"
             ).pack(pady=(0, 8))
@@ -697,10 +822,8 @@ class WizardPrimeraVez:
             ).pack(anchor='w', padx=15, pady=(8, 3))
             
             horarios_texto = [
-                "📅 Lunes y Jueves - 09:00 AM",
-                "📅 Martes y Viernes - 02:00 PM", 
-                "📅 Miércoles - 06:00 PM",
-                "📅 Sábado - 11:00 AM"
+                "📅 Lunes, Miércoles y Viernes - 10:00 AM",
+                "📅 Martes, Jueves y Sábado - 04:00 PM"
             ]
             
             for horario in horarios_texto:
@@ -714,7 +837,7 @@ class WizardPrimeraVez:
             
             tk.Label(
                 horarios_frame,
-                text="📦 Solo productos de Marketplace",
+                text="🛍️ Publica 1 producto por vez (cámbialo en el Gestor de Tareas)",
                 font=("Segoe UI", 8),
                 bg="white",
                 fg="gray",
@@ -771,26 +894,161 @@ class WizardPrimeraVez:
         self.paso_actual -= 1
         self._mostrar_paso()
 
+    def _verificar_email_wizard(self):
+        """Verifica el email y determina el estado de la licencia del usuario"""
+        email = self.entry_email.get().strip()
+        if not email:
+            messagebox.showwarning("Email requerido", "Ingresa tu email.")
+            return
+
+        self.label_estado_email.config(fg="gray", text="⏳ Verificando...")
+        self.btn_verificar_email.config(state='disabled')
+        self.root.update()
+
+        try:
+            url = self.gestor_licencias.url_backend.replace('/verificar-licencia', '/verificar-email')
+            resp = requests.get(url, params={'email': email, 'nombreApp': 'Marketplace'}, timeout=30, verify=False)
+
+            if resp.status_code != 200:
+                self.label_estado_email.config(fg="#dc3545", text="❌ Error al verificar. Intenta nuevamente.")
+                self.btn_verificar_email.config(state='normal')
+                return
+
+            datos = resp.json()
+
+            if not datos.get('existe'):
+                self.label_estado_email.config(fg="#dc3545", text="❌ Email no encontrado en AutomaPro.")
+                messagebox.showerror("Email no registrado",
+                    f"El email '{email}' no está registrado.\n\nRegístrate en:\nautomapro-frontend.vercel.app")
+                self.btn_verificar_email.config(state='normal')
+                return
+
+            tipo = datos.get('tipoLicencia', 'NINGUNA')
+
+            if tipo == 'FULL':
+                # Tiene licencia completa — activar directamente y cachear
+                self.label_estado_email.config(fg="#28a745", text="✅ Email verificado — Licencia Completa encontrada")
+                codigo = datos.get('codigo', '')
+                self.entry_licencia.config(state='normal')
+                self.entry_licencia.delete(0, tk.END)
+                self.entry_licencia.insert(0, codigo)
+                self.entry_licencia.config(state='disabled')
+                self.label_formato.config(fg="#28a745", text="✅ LICENCIA COMPLETA VÁLIDA")
+                self.licencia_validada = True
+                self.tipo_licencia = 'FULL'
+                self.btn_verificar_email.config(state='disabled')
+                if hasattr(self, 'btn_usar_prueba'):
+                    self.btn_usar_prueba.config(state='disabled')
+                # Cachear datos de licencia FULL para evitar verificación al abrir Panel
+                self.gestor_licencias.guardar_codigo_licencia(codigo)
+                self.gestor_licencias._guardar_cache_local({
+                    'tipo': 'FULL',
+                    'valida': True,
+                    'expirado': False,
+                    'diasRestantes': None,
+                    'developer_permanente': False
+                })
+
+            elif tipo == 'TRIAL':
+                dias = datos.get('diasRestantes', 0)
+                expirado = datos.get('expirado', False)
+                if expirado:
+                    # Trial expirado — solo puede ingresar código de licencia completa
+                    self.label_estado_email.config(fg="#dc3545", text="⚠️ Email verificado — Período de prueba expirado")
+                    self.entry_licencia.config(state='normal')
+                    self.label_formato.config(fg="#ffc107", text="Ingresa tu código de licencia completa")
+                    self.btn_verificar_email.config(state='disabled')
+                    # Bloquear botón Usar Prueba
+                    if hasattr(self, 'btn_usar_prueba'):
+                        self.btn_usar_prueba.config(state='disabled')
+                else:
+                    # Trial vigente
+                    self.label_estado_email.config(fg="#28a745", text=f"✅ Email verificado — Prueba activa ({dias} días restantes)")
+                    self.entry_licencia.config(state='normal')
+                    self.label_formato.config(fg="gray", text="Opcional: ingresa código de licencia completa")
+                    self.licencia_validada = True
+                    self.tipo_licencia = 'TRIAL'
+                    self.btn_verificar_email.config(state='disabled')
+
+            elif tipo == 'NINGUNA':
+                # Sin licencia — puede usar prueba
+                self.label_estado_email.config(fg="#28a745", text="✅ Email verificado")
+                self.entry_licencia.config(state='normal')
+                self.label_formato.config(fg="gray", text="Opcional: ingresa código de licencia completa")
+                self.btn_verificar_email.config(state='disabled')
+
+        except Exception as e:
+            self.label_estado_email.config(fg="#e65100", text="⏳ Servidor iniciando...")
+            messagebox.showwarning(
+                "Servidor iniciando",
+                "El servidor está iniciando. Esto puede tomar hasta 2 minutos.\n\n"
+                "Por favor espera un momento e intenta nuevamente."
+            )
+            self.btn_verificar_email.config(state='normal')
+
     def _usar_trial(self):
-        self.datos_config['codigo_licencia'] = ''
-        self.licencia_validada = True
-        self.tipo_licencia = 'TRIAL'
-        self._siguiente()
+        """Registra automáticamente la instalación y obtiene código TRIAL"""
+        email = self.entry_email.get().strip() if hasattr(self, 'entry_email') else None
+        if not email:
+            messagebox.showwarning("Email requerido", "Primero verifica tu email con el botón Verificar.")
+            return
+        # Verificar que el email fue verificado
+        estado_email = self.label_estado_email.cget("text") if hasattr(self, 'label_estado_email') else ""
+        if not estado_email or "❌" in estado_email:
+            messagebox.showwarning("Email no verificado", "Primero verifica tu email con el botón Verificar.")
+            return
+        # Si ya tiene licencia completa no necesita usar prueba
+        if self.tipo_licencia == 'FULL':
+            messagebox.showinfo("Licencia Completa", "Ya tienes licencia completa activada. Da clic en Siguiente.")
+            return
+        self.label_formato.config(fg="gray", text="⏳ Activando período de prueba...")
+        self.root.update()
+        try:
+            codigo = self.gestor_licencias.registrar_instalacion(email=email)
+            if codigo:
+                self.datos_config['codigo_licencia'] = codigo
+                self.licencia_validada = True
+                self.tipo_licencia = 'TRIAL'
+                self.label_formato.config(fg="#28a745", text="✅ Período de prueba activado")
+                self.root.after(1000, self._siguiente)
+            else:
+                self.label_formato.config(fg="#dc3545", text="❌ Error al activar. Verifica tu conexión.")
+        except Exception as e:
+            self.label_formato.config(fg="#dc3545", text=f"❌ Error: {e}")
 
     def _validar_licencia(self):
         codigo = self.entry_licencia.get().strip().upper()
-        
-        # Si está vacío, debe usar TRIAL
+        email = self.entry_email.get().strip() if hasattr(self, 'entry_email') else ""
+
+        # Verificar que el email fue verificado
+        estado_email = self.label_estado_email.cget("text") if hasattr(self, 'label_estado_email') else ""
+        if not estado_email or "❌" in estado_email:
+            messagebox.showwarning("Email no verificado", "Primero verifica tu email con el botón Verificar.")
+            return
+
+        # Si ya tiene licencia FULL activada automáticamente — avanzar directo
+        if self.tipo_licencia == 'FULL' and self.licencia_validada:
+            self.datos_config['codigo_licencia'] = self.entry_licencia.get().strip().upper()
+            self.gestor_licencias.guardar_codigo_licencia(self.datos_config['codigo_licencia'])
+            self._siguiente()
+            return
+
+        # Si tiene TRIAL vigente — avanzar directo
+        if self.tipo_licencia == 'TRIAL' and self.licencia_validada and not codigo:
+            self._siguiente()
+            return
+
+        # Si está vacío y no tiene licencia activa
         if not codigo:
             messagebox.showwarning(
                 "Campo Vacío",
-                "Debes ingresar un código de licencia o presionar 'Usar TRIAL'."
+                "Debes ingresar un código de licencia o presionar 'Usar Prueba'."
             )
             return
-        
+
         # Quitar guiones para validar
         codigo_limpio = re.sub(r'[^A-Z0-9]', '', codigo)
-        
+
         # Validar formato (exactamente 14 caracteres)
         if len(codigo_limpio) != 14:
             messagebox.showerror(
@@ -800,169 +1058,171 @@ class WizardPrimeraVez:
                 f"Tienes: {len(codigo_limpio)} caracteres"
             )
             return
-        
-        # Validar que la licencia haya sido verificada
+
+        # Validar que la licencia haya sido verificada y pertenezca al email
         if not self.licencia_validada:
             messagebox.showerror(
                 "Licencia Inválida",
                 "El código ingresado no es válido.\n\n"
-                "Por favor verifica el código o usa TRIAL."
+                "Por favor verifica el código o usa Prueba."
             )
             return
-        
+
         # Formatear correctamente
-        codigo = f"{codigo_limpio[:3]}-{codigo_limpio[3:9]}-{codigo_limpio[9:]}"
-        self.datos_config['codigo_licencia'] = codigo
-        self.gestor_licencias.guardar_codigo_licencia(codigo)
-        
+        codigo_formateado = f"{codigo_limpio[:3]}-{codigo_limpio[3:9]}-{codigo_limpio[9:]}"
+        self.datos_config['codigo_licencia'] = codigo_formateado
+        self.gestor_licencias.guardar_codigo_licencia(codigo_formateado)
         self._siguiente()
 
     def _guardar_config_basica(self):
         self.datos_config['navegador'] = self.var_navegador.get()
         self.datos_config['usar_perfil'] = self.var_perfil.get()
-        self._siguiente()
-
-    def _abrir_gestor_mensajes(self):
-        try:
-            subprocess.Popen(['python', 'extraer_catalogo_whatsapp.py'])
-            messagebox.showinfo("Info", "El extractor de catálogo se abrió en una nueva ventana.\n\nExtrae tus productos y luego presiona 'Siguiente'.")
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo abrir el extractor: {e}")
-
-    def _usar_ejemplos(self):
-        """Ya no se usan ejemplos en Marketplace"""
-        messagebox.showinfo("Info", "Continúa al siguiente paso.")
-        self._verificar_mensajes()
-
-    def _verificar_mensajes(self):
-        """Simplemente continúa al siguiente paso para Marketplace"""
+        self.datos_config['ubicacion'] = self.var_ubicacion.get().strip() or 'Guayaquil'
         self._crear_config_completa()
         self._siguiente()
 
+    def _abrir_gestor_articulos(self):
+        try:
+            base = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+            gestor_exe = os.path.join(base, 'GestorArticulos.exe')
+            if os.path.exists(gestor_exe):
+                subprocess.Popen([gestor_exe])
+            elif not getattr(sys, 'frozen', False):
+                subprocess.Popen([sys.executable, os.path.join(base, 'gestor_articulos_gui.py')])
+            else:
+                from compartido.gestor_archivos import leer_config_global
+                carpeta = os.path.abspath(leer_config_global()['carpeta_productos'])
+                os.makedirs(carpeta, exist_ok=True)
+                messagebox.showwarning("Aviso", "El gestor de productos no se encontró.\nAbriendo carpeta de productos.")
+                subprocess.Popen(['explorer', carpeta])
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir el gestor: {e}")
+
+    def _crear_carpetas_productos(self):
+        try:
+            from compartido.gestor_archivos import crear_estructura_carpetas, contar_articulos
+            crear_estructura_carpetas()
+            messagebox.showinfo(
+                "✅ Éxito",
+                f"Se crearon {contar_articulos()} carpetas de productos.\n\n"
+                "Pon las imágenes en la carpeta 'imagenes' de cada producto\n"
+                "y llena sus datos con el Gestor de Productos."
+            )
+            self._mostrar_paso()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron crear las carpetas: {e}")
+
+    def _verificar_productos(self):
+        from compartido.gestor_archivos import obtener_estadisticas_articulos
+        if obtener_estadisticas_articulos()['articulos_listos'] == 0:
+            continuar = messagebox.askyesno(
+                "Aviso",
+                "Todavía no tienes productos listos para publicar\n"
+                "(cada uno necesita título, precio y al menos una imagen).\n\n"
+                "¿Deseas continuar y completarlos después?"
+            )
+            if not continuar:
+                return
+        self._siguiente()
+
     def _crear_config_completa(self):
-        """Crea el archivo config_global.txt con la configuración inicial completa"""
-        config = configparser.ConfigParser()
-        
-        config['GENERAL'] = {
-            'nombre_proyecto': 'Marketplace Automático',
-            'carpeta_productos': 'productos',
-            'navegador': self.datos_config['navegador'],
-            'modo_debug': 'si'
+        """Crea config_global.txt desde la plantilla con lo elegido en el wizard"""
+        valores = {
+            ('GENERAL', 'navegador'): self.datos_config['navegador'],
+            ('NAVEGADOR', 'usar_perfil_existente'): self.datos_config['usar_perfil'],
+            ('PUBLICACION', 'ubicacion'): self.datos_config.get('ubicacion', 'Guayaquil'),
         }
-        
-        config['MENSAJES'] = {
-            'seleccion': 'aleatoria',
-            'historial_evitar_repetir': '5',
-            'formato_fecha': 'no',
-            'agregar_hashtags': 'no',
-            'hashtags': '#Marketplace,#Productos',
-            'agregar_firma': 'no',
-            'texto_firma': 'Publicado automáticamente'
-        }
-        
-        config['PUBLICACION'] = {
-            'tiempo_entre_intentos': '3',
-            'max_intentos_por_publicacion': '3',
-            'espera_despues_publicar': '5',
-            'verificar_publicacion_exitosa': 'si',
-            'espera_estabilizacion_modal': '3'
-        }
-        
-        config['NAVEGADOR'] = {
-            'usar_perfil_existente': self.datos_config['usar_perfil'],
-            'carpeta_perfil_custom': 'perfiles/facebook_publicador',
-            'desactivar_notificaciones': 'si',
-            'maximizar_ventana': 'si'
-        }
-        
-        config['LIMITES'] = {
-            'tiempo_minimo_entre_publicaciones_segundos': '120',
-            'permitir_duplicados': 'no',
-            'permitir_forzar_publicacion_manual': 'si'
-        }
-        
-        config['DEBUG'] = {
-            'modo_debug': 'detallado'
-        }
-        
+        try:
+            with open('config_global.ejemplo.txt', 'r', encoding='utf-8') as f:
+                lineas = f.read().split('\n')
+        except Exception:
+            messagebox.showerror("Error", "Falta config_global.ejemplo.txt en la carpeta del programa")
+            return
+
+        seccion = None
+        for i, linea in enumerate(lineas):
+            limpia = linea.strip()
+            if limpia.startswith('[') and limpia.endswith(']'):
+                seccion = limpia[1:-1]
+            elif '=' in limpia and not limpia.startswith('#'):
+                clave = limpia.split('=', 1)[0].strip()
+                if (seccion, clave) in valores:
+                    lineas[i] = f"{clave} = {valores[(seccion, clave)]}"
+
         with open('config_global.txt', 'w', encoding='utf-8') as f:
-            f.write("# ============================================================\n")
-            f.write("# CONFIGURACIÓN GLOBAL - MARKETPLACE AUTOMÁTICO\n")
-            f.write("# ============================================================\n\n")
-            config.write(f)
+            f.write('\n'.join(lineas))
 
     def _crear_tareas_predeterminadas(self):
-        """Crea las 4 tareas automáticas predeterminadas"""
+        """Crea las 2 tareas automáticas predeterminadas de publicación"""
         try:
-            ruta_script = os.path.abspath("publicador_marketplace.py")
-            prefijo = "AutomaPro_Marketplace"
-            directorio_trabajo = os.path.dirname(ruta_script)
-            
-            comando_tarea = f'cmd /c "cd /d "{directorio_trabajo}" && py "{ruta_script}""'
-            
-            # Definir las 4 tareas
+            from compartido.gestor_archivos import guardar_config_tarea, PREFIJO_TAREAS
+            prefijo = PREFIJO_TAREAS
+
+            if getattr(sys, 'frozen', False):
+                base_dir = os.path.dirname(sys.executable)
+                exe = os.path.join(base_dir, "PublicadorMarketplace.exe")
+                plantilla_comando = f'"{exe}" --tarea={{id}}'
+            else:
+                ruta_script = os.path.abspath("publicar_marketplace.py")
+                directorio_trabajo = os.path.dirname(ruta_script)
+                plantilla_comando = f'cmd /c "cd /d "{directorio_trabajo}" && py "{ruta_script}" --tarea={{id}}"'
+
+            # Definir las 2 tareas
             tareas = [
                 {
-                    'nombre': f"{prefijo}_LunesJueves",
-                    'dias': 'MON,THU',
-                    'hora': '09:00'
+                    'nombre': f"{prefijo}_LunesMiercolesViernes",
+                    'dias': 'MON,WED,FRI',
+                    'hora': '10:00'
                 },
                 {
-                    'nombre': f"{prefijo}_MartesViernes",
-                    'dias': 'TUE,FRI',
-                    'hora': '14:00'
-                },
-                {
-                    'nombre': f"{prefijo}_Miercoles",
-                    'dias': 'WED',
-                    'hora': '18:00'
-                },
-                {
-                    'nombre': f"{prefijo}_Sabado",
-                    'dias': 'SAT',
-                    'hora': '11:00'
+                    'nombre': f"{prefijo}_MartesJuevesSabado",
+                    'dias': 'TUE,THU,SAT',
+                    'hora': '16:00'
                 }
             ]
-            
+
             tareas_creadas = 0
             errores = []
-            
+
             for tarea in tareas:
+                id_de_tarea = tarea['nombre'][len(prefijo) + 1:]
                 comando = [
                     'schtasks',
                     '/Create',
                     '/TN', tarea['nombre'],
-                    '/TR', comando_tarea,
+                    '/TR', plantilla_comando.format(id=id_de_tarea),
                     '/SC', 'WEEKLY',
                     '/D', tarea['dias'],
                     '/ST', tarea['hora'],
                     '/F'
                 ]
-                
+
                 resultado = subprocess.run(
                     comando,
                     capture_output=True,
-                    text=True
+                    text=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW
                 )
-                
+
                 if resultado.returncode == 0:
+                    guardar_config_tarea(id_de_tarea, tarea['nombre'], ['publicar'])
                     tareas_creadas += 1
                 else:
                     errores.append(tarea['nombre'])
-            
+
             if tareas_creadas > 0:
                 self._mostrar_toast(
                     f"✅ Se crearon {tareas_creadas} tareas automáticas\n\nPuedes verlas en el Gestor de Tareas",
                     duracion=4000,
                     color="#28a745"
                 )
-            
+
             if errores:
                 messagebox.showwarning(
                     "⚠️ Advertencia",
                     f"No se pudieron crear {len(errores)} tareas:\n" + "\n".join(errores)
                 )
-        
+
         except Exception as e:
             messagebox.showerror("Error", f"Error creando tareas automáticas:\n{e}")
 
@@ -978,7 +1238,7 @@ class WizardPrimeraVez:
     def _mostrar_mensaje_final_y_cerrar(self):
         """Muestra el mensaje final como toast y cierra el wizard"""
         self._mostrar_toast(
-            "¡Todo listo!\n\nPuedes ejecutar 'publicador_marketplace.py' cuando quieras publicar.",
+            "¡Todo listo!\n\nPuedes abrir 'Marketplace Automático' cuando quieras publicar.",
             duracion=3000,
             color="#28a745"
         )
@@ -989,10 +1249,15 @@ class WizardPrimeraVez:
             # Crear tareas automáticas si está activado
             if hasattr(self, 'var_crear_tareas') and self.var_crear_tareas.get():
                 self._crear_tareas_predeterminadas()
-            
-            subprocess.Popen(['python', 'publicador_marketplace.py'])
+
+            base = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+            exe = os.path.join(base, 'PublicadorMarketplace.exe')
+            if os.path.exists(exe):
+                subprocess.Popen([exe, '--modulo', 'publicar'])
+            else:
+                subprocess.Popen([sys.executable, 'publicar_marketplace.py', '--modulo', 'publicar'])
             self._mostrar_toast(
-                "✅ Publicación Iniciada\n\nEl navegador se abrirá en unos segundos...",
+                "🚀 Publicación Iniciada\n\nEl navegador se abrirá en unos segundos...",
                 duracion=3000,
                 color="#28a745"
             )
@@ -1002,39 +1267,25 @@ class WizardPrimeraVez:
             messagebox.showerror("Error", f"No se pudo iniciar la publicación: {e}")
 
     def _mostrar_toast(self, mensaje, duracion=3000, color="#28a745"):
-        """Muestra notificación toast que desaparece automáticamente"""
-        toast = tk.Toplevel(self.root)
-        toast.withdraw()
-        toast.overrideredirect(True)
-        
-        frame = tk.Frame(toast, bg=color, padx=20, pady=15)
-        frame.pack()
-        
-        tk.Label(
-            frame,
-            text=mensaje,
-            font=("Segoe UI", 11),
-            bg=color,
-            fg="white",
-            justify='center'
-        ).pack()
-        
-        toast.update_idletasks()
-        width = toast.winfo_width()
-        height = toast.winfo_height()
-        x = (toast.winfo_screenwidth() // 2) - (width // 2)
-        y = toast.winfo_screenheight() - height - 50
-        
-        toast.geometry(f'+{x}+{y}')
-        toast.deiconify()
-        
-        toast.after(duracion, toast.destroy)
+        """Delega al sistema centralizado de toasts"""
+        from compartido.toast import Toast
+        if color == Toast.COLOR_ERROR or color == "#dc3545":
+            Toast.error(self.root, mensaje, duracion)
+        elif color == Toast.COLOR_ADVERTENCIA or color == "#e65100":
+            Toast.advertencia(self.root, mensaje, duracion)
+        elif color == Toast.COLOR_INFO or color == "#1a73e8":
+            Toast.info(self.root, mensaje, duracion)
+        else:
+            Toast.exito(self.root, mensaje, duracion)
 
     def ejecutar(self):
         self.root.mainloop()
 
 
 def main():
+    # El Wizard usa rutas relativas (config_global.txt y la carpeta de productos); deben apuntar a la carpeta del programa
+    base = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+    os.chdir(base)
     wizard = WizardPrimeraVez()
     wizard.ejecutar()
 

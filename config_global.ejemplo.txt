@@ -6,37 +6,48 @@
 
 [GENERAL]
 nombre_proyecto = Marketplace Automático
-carpeta_productos = productos
+carpeta_productos = ArticulosMarketplace
+cantidad_productos = 5
 navegador = firefox
-modo_debug = si
 
-[MENSAJES]
-seleccion = aleatoria
-historial_evitar_repetir = 5
-formato_fecha = no
-agregar_hashtags = no
-hashtags = #Marketplace,#Productos
-agregar_firma = no
-texto_firma = Publicado automáticamente
+[PRODUCTOS]
+cantidad_por_ejecucion = 1
 
 [PUBLICACION]
+ubicacion = Guayaquil
 tiempo_entre_intentos = 3
 max_intentos_por_publicacion = 3
 espera_despues_publicar = 5
-verificar_publicacion_exitosa = si
-espera_estabilizacion_modal = 3
-
-[NAVEGADOR]
-usar_perfil_existente = si
-carpeta_perfil_custom = perfiles/facebook_publicador
-desactivar_notificaciones = si
-maximizar_ventana = si
+tiempo_entre_publicaciones = 10
+max_publicaciones_por_dia = 20
 
 [LIMITES]
 tiempo_minimo_entre_publicaciones_segundos = 120
-permitir_duplicados = no
 permitir_forzar_publicacion_manual = si
+
+[EXTRACCION]
+contacto_whatsapp =
+auto_scroll = 5
+productos_por_extraccion = 5
+
+[ATENCION]
+contacto_vendedor_whatsapp =
+nombre_vendedor =
+max_insistencias = 2
+max_conversaciones_por_ejecucion = 10
+
+[NAVEGADOR]
+usar_perfil_existente = si
+carpeta_perfil_custom = perfiles/facebook_marketplace
+desactivar_notificaciones = si
+maximizar_ventana = si
+
+[SEGURIDAD]
+confirmacion_borrado = si
+backup_antes_borrar = si
 
 [DEBUG]
 modo_debug = detallado
 
+[SECUENCIA]
+modulos_activos = publicar

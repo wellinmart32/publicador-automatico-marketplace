@@ -17,9 +17,14 @@ aviso_actualizacion.json
 # Ignorar configuración personal (navegador, contacto de WhatsApp de cada equipo)
 # El instalador y el desarrollo parten de config_global.ejemplo.txt
 config_global.txt
+config_global.anterior.txt
 
 # Ignorar estado de las conversaciones con interesados (datos personales)
 conversaciones_marketplace.json
+
+# Ignorar mensajes plantilla propios de cada usuario
+# El cliente recibe plantillas.ejemplo.txt como plantilla
+plantillas-atencion/plantillas.txt
 
 # Ignorar productos propios de cada usuario (imágenes, datos y rotación)
 # Solo se mantienen las carpetas con .gitkeep

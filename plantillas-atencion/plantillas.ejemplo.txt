@@ -1,0 +1,18 @@
+[PEDIR_CELULAR]
+Hola {nombre} 👋, gracias por tu interés en "{producto}".
+Para darte toda la información, ¿me compartes tu número de celular? 📱
+
+[INSISTIR_CELULAR]
+Para poder atenderte necesito tu número de celular 📱
+Por favor escríbelo, por ejemplo: 0991234567
+
+[CONFIRMACION]
+¡Gracias {nombre}! ✅
+En breve te contactará {vendedor} al {celular} para darte todos los detalles de "{producto}".
+
+[AVISO_VENDEDOR]
+🛍️ Nuevo interesado en Marketplace
+Producto: {producto}
+Nombre: {nombre}
+Celular: {celular}
+

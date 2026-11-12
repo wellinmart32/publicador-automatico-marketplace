@@ -10,7 +10,7 @@ class GestorLicencias:
 
     def __init__(self, nombre_app="Marketplace"):
         self.nombre_app = nombre_app
-        self.url_backend = "http://localhost:8080/api/public/verificar-licencia"
+        self.url_backend = "https://automapro-backend.onrender.com/api/public/verificar-licencia"
         
         # Código developer maestro (funciona para todas las apps)
         self.codigo_developer_master = "LIC-MASTER-WELLI"
@@ -23,19 +23,133 @@ class GestorLicencias:
         
         self.carpeta_config = base_path / '.config' / 'AutomaPro' / nombre_app
         self.archivo_config = self.carpeta_config / 'config.json'
-        self.dias_revalidacion = 7  # Re-verificar cada 7 días (excepto developer)
+        self.dias_revalidacion = 7  # Re-verificar cada 7 días (solo TRIAL)
+
+        # Respaldo permanente en AppData (más resistente a limpiadores)
+        if os.name == 'nt':
+            appdata = Path(os.environ.get('LOCALAPPDATA', base_path / 'AppData' / 'Local'))
+        else:
+            appdata = Path.home() / '.local' / 'share'
+        self.carpeta_respaldo = appdata / 'AutomaPro' / nombre_app
+        self.archivo_respaldo = self.carpeta_respaldo / 'lic.json'
 
     def _es_codigo_developer_permanente(self, codigo):
         """Verifica si es un código developer master"""
         return codigo == self.codigo_developer_master
 
+    def obtener_uuid_dispositivo(self):
+        """Genera un UUID único y estable basado en el hardware del dispositivo"""
+        import hashlib
+        import socket
+        import uuid as uuid_mod
+        try:
+            # Combinar múltiples identificadores del dispositivo
+            nombre_pc = socket.gethostname()
+            usuario_win = os.environ.get('USERNAME', 'unknown')
+            mac = ':'.join(['{:02x}'.format((uuid_mod.getnode() >> i) & 0xff)
+                           for i in range(0, 48, 8)][::-1])
+            identificador = f"{nombre_pc}_{usuario_win}_{mac}_{self.nombre_app}"
+            return hashlib.sha256(identificador.encode()).hexdigest()[:32]
+        except Exception:
+            # Fallback — usar UUID guardado localmente
+            archivo_uuid = self.carpeta_config / 'device.uuid'
+            if archivo_uuid.exists():
+                return archivo_uuid.read_text().strip()
+            nuevo_uuid = str(uuid_mod.uuid4()).replace('-', '')[:32]
+            self.carpeta_config.mkdir(parents=True, exist_ok=True)
+            archivo_uuid.write_text(nuevo_uuid)
+            return nuevo_uuid
+
+    def registrar_instalacion(self, email=None):
+        """Registra la instalación en el backend y obtiene código TRIAL automáticamente"""
+        try:
+            device_uuid = self.obtener_uuid_dispositivo()
+            payload = {'deviceUuid': device_uuid, 'nombreApp': self.nombre_app}
+            if email:
+                payload['email'] = email
+            response = requests.post(
+                f"{self.url_backend.replace('/verificar-licencia', '')}/registrar-instalacion",
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+            if response.status_code == 200:
+                datos = response.json()
+                codigo = datos.get('codigo')
+                if codigo:
+                    self.guardar_codigo_licencia(codigo)
+                    return codigo
+        except Exception as e:
+            print(f"⚠️  Error registrando instalación: {e}")
+        return None
+
+    def recuperar_licencia_full_por_email(self, email):
+        """Recupera licencia FULL por email (para reinstalaciones)"""
+        try:
+            url = self.url_backend.replace('/verificar-licencia', '/licencia-por-email')
+            response = requests.get(
+                url,
+                params={'email': email, 'app': self.nombre_app},
+                timeout=10
+            )
+            if response.status_code == 200:
+                datos = response.json()
+                codigo = datos.get('codigo')
+                if codigo:
+                    self.guardar_codigo_licencia(codigo)
+                    return codigo
+        except Exception as e:
+            print(f"⚠️  Error recuperando licencia: {e}")
+        return None
+
+    def verificar_actualizacion(self, version_actual):
+        """
+        Consulta al backend si hay una versión más reciente disponible.
+        Retorna dict con: hay_actualizacion, version_actual, version_nueva
+        """
+        try:
+            url = "https://automapro-backend.onrender.com/api/public/version?nombre=Marketplace"
+            respuesta = requests.get(url, timeout=10)
+            if respuesta.status_code == 200:
+                datos = respuesta.json()
+                version_nueva = datos.get('version', version_actual)
+                url_descarga = datos.get('rutaArchivo', '')
+                hay_actualizacion = self._es_version_mayor(version_nueva, version_actual)
+                return {
+                    'hay_actualizacion': hay_actualizacion,
+                    'version_actual': version_actual,
+                    'version_nueva': version_nueva,
+                    'url_descarga': url_descarga,
+                    'ruta_archivo': url_descarga
+                }
+        except Exception as e:
+            print(f"ℹ️  No se pudo consultar actualizaciones, se intentará la próxima vez ({type(e).__name__})")
+        return {'hay_actualizacion': False}
+
+    @staticmethod
+    def _es_version_mayor(nueva, actual):
+        """Compara por números: 1.10.0 es mayor que 1.9.2, y 1.0.2 no es mayor que 1.1.0"""
+        def partes(version):
+            try:
+                numeros = [int(p) for p in str(version).strip().split('.')]
+            except ValueError:
+                return None
+            return tuple(numeros + [0] * (3 - len(numeros)))
+
+        n, a = partes(nueva), partes(actual)
+        if n is None or a is None:
+            return False
+        return n > a
+
     def obtener_codigo_guardado(self):
         """Obtiene el código de licencia guardado localmente"""
         try:
             if self.archivo_config.exists():
-                with open(self.archivo_config, 'r', encoding='utf-8') as f:
-                    datos = json.load(f)
-                    return datos.get('codigo_licencia', '')
+                contenido = self.archivo_config.read_text(encoding='utf-8').strip()
+                if not contenido:
+                    return ''
+                datos = json.loads(contenido)
+                return datos.get('codigo_licencia', '')
         except Exception as e:
             print(f"Error leyendo configuración local: {e}")
         return ''
@@ -61,60 +175,99 @@ class GestorLicencias:
             return False
 
     def _obtener_cache_local(self):
-        """Obtiene la información de cache local"""
+        """Obtiene la información de cache local, con fallback a respaldo AppData"""
+        cache = self._leer_cache(self.archivo_config)
+        if cache:
+            return cache
+
+        # Fallback: restaurar desde respaldo AppData
+        cache_respaldo = self._leer_cache(self.archivo_respaldo, es_respaldo=True)
+        if cache_respaldo:
+            try:
+                self.carpeta_config.mkdir(parents=True, exist_ok=True)
+                config = {'datos_licencia': cache_respaldo}
+                with open(self.archivo_respaldo, 'r', encoding='utf-8') as f:
+                    respaldo = json.load(f)
+                if respaldo.get('codigo_licencia'):
+                    config['codigo_licencia'] = respaldo['codigo_licencia']
+                with open(self.archivo_config, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+            return cache_respaldo
+
+        return None
+
+    def _leer_cache(self, archivo, es_respaldo=False):
+        """Lee y valida cache desde un archivo"""
         try:
-            if self.archivo_config.exists():
-                with open(self.archivo_config, 'r', encoding='utf-8') as f:
-                    datos = json.load(f)
-                    
-                    if 'datos_licencia' in datos:
-                        cache = datos['datos_licencia']
-                        
-                        # Si es developer permanente, siempre es válido
-                        if cache.get('es_developer_permanente'):
-                            return cache
-                        
-                        # Para otras licencias, verificar si el cache expiró
-                        fecha_verificacion = cache.get('fecha_verificacion')
-                        if fecha_verificacion:
-                            fecha_cache = datetime.fromisoformat(fecha_verificacion)
-                            dias_desde_verificacion = (datetime.now() - fecha_cache).days
-                            
-                            if dias_desde_verificacion <= self.dias_revalidacion:
-                                return cache
+            archivo = Path(archivo)
+            if not archivo.exists():
+                return None
+            contenido = archivo.read_text(encoding='utf-8').strip()
+            if not contenido:
+                return None
+            datos = json.loads(contenido)
+            cache = datos.get('datos_licencia')
+            if not cache:
+                return None
+            if cache.get('es_developer_permanente'):
+                return cache
+            if cache.get('tipo') in ['FULL', 'MASTER'] and cache.get('valida'):
+                return cache
+            fecha_verificacion = cache.get('fecha_verificacion')
+            if fecha_verificacion:
+                fecha_cache = datetime.fromisoformat(fecha_verificacion)
+                dias = (datetime.now() - fecha_cache).days
+                if dias <= self.dias_revalidacion:
+                    return cache
         except Exception as e:
             print(f"Error leyendo cache: {e}")
-        
         return None
 
     def _guardar_cache_local(self, datos_licencia):
-        """Guarda los datos de la licencia en cache local"""
+        """Guarda los datos de la licencia en cache local y respaldo"""
+        datos_cache = {
+            'tipo': datos_licencia.get('tipo'),
+            'valida': datos_licencia.get('valida'),
+            'expirada': datos_licencia.get('expirada'),
+            'dias_restantes': datos_licencia.get('diasRestantes'),
+            'fecha_verificacion': datetime.now().isoformat(),
+            'es_developer_permanente': datos_licencia.get('developer_permanente', False)
+        }
+
+        # Guardar en ubicación principal
         try:
             self.carpeta_config.mkdir(parents=True, exist_ok=True)
-            
             config = {}
             if self.archivo_config.exists():
-                with open(self.archivo_config, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-            
-            config['datos_licencia'] = {
-                'tipo': datos_licencia.get('tipo'),
-                'valida': datos_licencia.get('valida'),
-                'expirada': datos_licencia.get('expirada'),
-                'dias_restantes': datos_licencia.get('diasRestantes'),
-                'fecha_verificacion': datetime.now().isoformat(),
-                'es_developer_permanente': datos_licencia.get('developer_permanente', False)
-            }
-            
+                contenido = self.archivo_config.read_text(encoding='utf-8').strip()
+                if contenido:
+                    config = json.loads(contenido)
+            config['datos_licencia'] = datos_cache
             with open(self.archivo_config, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
-            
-            return True
         except Exception as e:
-            print(f"Error guardando cache: {e}")
-            return False
+            print(f"Error guardando cache principal: {e}")
 
-    def verificar_licencia(self, codigo_licencia, mostrar_mensajes=True):
+        # Guardar respaldo en AppData solo para FULL/MASTER/developer
+        tipo = datos_licencia.get('tipo', 'TRIAL')
+        es_full = tipo in ['FULL', 'MASTER'] or datos_licencia.get('developer_permanente', False)
+        if es_full:
+            try:
+                self.carpeta_respaldo.mkdir(parents=True, exist_ok=True)
+                respaldo = {
+                    'codigo_licencia': self.obtener_codigo_guardado(),
+                    'datos_licencia': datos_cache
+                }
+                with open(self.archivo_respaldo, 'w', encoding='utf-8') as f:
+                    json.dump(respaldo, f, indent=2, ensure_ascii=False)
+            except Exception as e:
+                print(f"Error guardando respaldo: {e}")
+
+        return True
+
+    def verificar_licencia(self, codigo_licencia, mostrar_mensajes=True, forzar_backend=False):
         """
         Verifica la licencia contra el backend
         
@@ -153,25 +306,10 @@ class GestorLicencias:
                 'developer_permanente': True
             }
         
-        # Intentar usar cache si está disponible
+        # Intentar verificar contra backend SIEMPRE primero
+        # El cache solo se usa como fallback cuando el backend no está disponible
         cache = self._obtener_cache_local()
         
-        if cache and cache.get('valida') and cache.get('es_developer_permanente'):
-            # Developer permanente siempre válido desde cache
-            if mostrar_mensajes:
-                print("👑 Licencia MASTER desde cache")
-            
-            return {
-                'tipo': cache.get('tipo', 'FULL'),
-                'valida': cache.get('valida', False),
-                'expirada': cache.get('expirada', False),
-                'diasRestantes': cache.get('dias_restantes'),
-                'mensaje': 'Licencia MASTER (desde cache local)',
-                'desde_cache': True,
-                'developer_permanente': cache.get('es_developer_permanente', False)
-            }
-        
-        # Intentar verificar contra backend
         try:
             if mostrar_mensajes:
                 print(f"🔍 Verificando licencia: {codigo_licencia}")
@@ -180,7 +318,7 @@ class GestorLicencias:
                 self.url_backend,
                 json={'codigoLicencia': codigo_licencia},
                 headers={'Content-Type': 'application/json'},
-                timeout=5
+                timeout=30
             )
             
             if response.status_code == 200:
@@ -209,8 +347,10 @@ class GestorLicencias:
                 raise Exception(f"Error del servidor: {response.status_code}")
                 
         except requests.exceptions.ConnectionError:
-            # Backend no disponible
-            if cache and cache.get('valida'):
+            # Backend no disponible — solo FULL/MASTER pueden usar cache offline
+            tipo_cache = cache.get('tipo', 'TRIAL') if cache else 'TRIAL'
+            es_full_cache = tipo_cache in ['FULL', 'MASTER'] or (cache and cache.get('es_developer_permanente'))
+            if not forzar_backend and cache and cache.get('valida') and es_full_cache:
                 # SI hay cache válido → Modo offline permitido
                 if mostrar_mensajes:
                     print("⚠️  Backend no disponible. Usando cache local.")
@@ -218,10 +358,14 @@ class GestorLicencias:
                 # Extender fecha de verificación
                 if not cache.get('es_developer_permanente'):
                     cache['fecha_verificacion'] = datetime.now().isoformat()
-                    with open(self.archivo_config, 'w', encoding='utf-8') as f:
-                        config = json.load(open(self.archivo_config, 'r', encoding='utf-8'))
+                    try:
+                        with open(self.archivo_config, 'r', encoding='utf-8') as f:
+                            config = json.load(f)
                         config['datos_licencia'] = cache
-                        json.dump(config, f, indent=2, ensure_ascii=False)
+                        with open(self.archivo_config, 'w', encoding='utf-8') as f:
+                            json.dump(config, f, indent=2, ensure_ascii=False)
+                    except Exception:
+                        pass
                 
                 return {
                     'tipo': cache.get('tipo', 'TRIAL'),
@@ -249,18 +393,24 @@ class GestorLicencias:
                 }
                 
         except requests.exceptions.Timeout:
-            # Timeout
-            if cache and cache.get('valida'):
+            # Timeout — solo FULL/MASTER pueden usar cache offline
+            tipo_cache = cache.get('tipo', 'TRIAL') if cache else 'TRIAL'
+            es_full_cache = tipo_cache in ['FULL', 'MASTER'] or (cache and cache.get('es_developer_permanente'))
+            if not forzar_backend and cache and cache.get('valida') and es_full_cache:
                 if mostrar_mensajes:
                     print("⚠️  Timeout al verificar. Usando cache local.")
                 
                 # Extender fecha de verificación
                 if not cache.get('es_developer_permanente'):
                     cache['fecha_verificacion'] = datetime.now().isoformat()
-                    with open(self.archivo_config, 'w', encoding='utf-8') as f:
-                        config = json.load(open(self.archivo_config, 'r', encoding='utf-8'))
+                    try:
+                        with open(self.archivo_config, 'r', encoding='utf-8') as f:
+                            config = json.load(f)
                         config['datos_licencia'] = cache
-                        json.dump(config, f, indent=2, ensure_ascii=False)
+                        with open(self.archivo_config, 'w', encoding='utf-8') as f:
+                            json.dump(config, f, indent=2, ensure_ascii=False)
+                    except Exception:
+                        pass
                 
                 return {
                     'tipo': cache.get('tipo', 'TRIAL'),
@@ -286,18 +436,24 @@ class GestorLicencias:
                 }
                 
         except Exception as e:
-            # Error general
-            if cache and cache.get('valida'):
+            # Error general — solo FULL/MASTER pueden usar cache offline
+            tipo_cache = cache.get('tipo', 'TRIAL') if cache else 'TRIAL'
+            es_full_cache = tipo_cache in ['FULL', 'MASTER'] or (cache and cache.get('es_developer_permanente'))
+            if not forzar_backend and cache and cache.get('valida') and es_full_cache:
                 if mostrar_mensajes:
                     print(f"⚠️  Error al verificar ({e}). Usando cache local.")
                 
                 # Extender fecha de verificación
                 if not cache.get('es_developer_permanente'):
                     cache['fecha_verificacion'] = datetime.now().isoformat()
-                    with open(self.archivo_config, 'w', encoding='utf-8') as f:
-                        config = json.load(open(self.archivo_config, 'r', encoding='utf-8'))
+                    try:
+                        with open(self.archivo_config, 'r', encoding='utf-8') as f:
+                            config = json.load(f)
                         config['datos_licencia'] = cache
-                        json.dump(config, f, indent=2, ensure_ascii=False)
+                        with open(self.archivo_config, 'w', encoding='utf-8') as f:
+                            json.dump(config, f, indent=2, ensure_ascii=False)
+                    except Exception:
+                        pass
                 
                 return {
                     'tipo': cache.get('tipo', 'TRIAL'),
@@ -380,7 +536,7 @@ def verificar_licencia_inicio():
     resultado = gestor.verificar_licencia(codigo_guardado)
     
     if not resultado['valida']:
-        DialogosLicencia.mostrar_trial_expirado()
+        DialogosLicencia.mostrar_trial_expirado(codigo_guardado)
         return None
     
     if resultado.get('developer_permanente'):
