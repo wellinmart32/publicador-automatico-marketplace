@@ -1,260 +1,88 @@
-# 🚀 Publicador Automático para Facebook Marketplace
+# 🛍️ Marketplace Automático
 
-Sistema modular completo para gestionar y publicar productos en Facebook Marketplace, con extracción automática de catálogos de WhatsApp Business.
+Publica tus productos en **Facebook Marketplace** de forma automática, extrae tu catálogo de **WhatsApp Business** y (próximamente) atiende a los interesados. Parte de la plataforma **AutomaPro**.
 
-## 📋 Características
-
-- ✅ **Creación automática de estructura de carpetas** para organizar productos
-- ✅ **Extracción de productos desde WhatsApp Business** (catálogos)
-- ✅ **Publicación automática en Facebook Marketplace**
-- ✅ **Gestión de imágenes** (hasta 10 por producto)
-- ✅ **Rotación automática** de productos
-- ✅ **Compatible con Git** (carpetas vacías con .gitkeep)
+Versión 2.0.0 · Windows 10/11 · Python 3.8+ (solo para ejecutar desde el código)
 
 ---
 
-## 🗂️ Estructura del Proyecto
+## ✨ Qué hace
+
+| Acción | Qué hace |
+|---|---|
+| ▶️ **Publicar productos** | Publica uno o varios productos por ejecución, en rotación, con reintentos y límites diarios para cuidar tu cuenta |
+| 🛍️ **Extraer catálogo** | Copia productos (título, precio, descripción e imágenes) de tu catálogo de WhatsApp Business a las carpetas de productos |
+| 💬 **Atender interesados** | Responde a quienes preguntan por tus productos y avisa al vendedor *(llega en una próxima actualización)* |
+
+Funciona con **Firefox, Chrome o Edge**. Cada acción guarda su sesión en `perfiles/` para no volver a iniciar sesión.
+
+---
+
+## 📁 Estructura
+
 ```
-publicador-automatico-marketplace/
-├── compartido/              # Funciones compartidas
-│   └── gestor_archivos.py
-├── extractores/             # Extracción de catálogos
-│   └── extractor_whatsapp.py
-├── publicadores/            # Publicación en plataformas
-│   └── publicador_marketplace.py
-├── ArticulosMarketplace/    # Datos de productos
-│   ├── config.txt
-│   ├── Articulo_1/
-│   │   ├── imagenes/
-│   │   └── datos.txt
-│   └── Articulo_2/
-├── crear_estructura.py
-├── extraer_catalogo.py
-├── automatizador_marketplace.py
-├── 1_Crear_Estructura.bat
-├── 2_Extraer_Catalogo.bat
-└── 3_Publicar_Marketplace.bat
+publicar_marketplace.py     Programa principal (--modulo, --tarea, --secuencia)
+panel_control.py            Panel de Control (interfaz principal)
+configurador_gui.py         Configurador
+gestor_articulos_gui.py     Gestor de Productos
+gestor_tareas_gui.py        Gestor de Tareas automáticas
+wizard_primera_vez.py       Asistente de primera vez (licencia y configuración)
+gestor_licencias.py         Licencias
+gestor_registro.py          Registro y estadísticas
+compartido/                 Configuración, productos, tareas, navegador, avisos
+publicadores/               Publicación en Marketplace
+extractores/                Extracción del catálogo de WhatsApp
+ArticulosMarketplace/       Tus productos: Articulo_N/datos.txt + imagenes/
 ```
 
 ---
 
-## 🔧 Instalación
+## 🚀 Uso
 
-### 1. Clonar el repositorio
+La forma normal es abrir el **Panel de Control** (`py panel_control.py` o el acceso directo del instalador).
+También puedes lanzar cada acción desde los `.bat`:
+
+- `0_Ejecutar_Todo.bat` → secuencia configurada
+- `1_Publicar_Marketplace.bat` → publicar
+- `2_Extraer_Catalogo.bat` → extraer catálogo
+- `3_Atender_Interesados.bat` → atender interesados
+- `4_Configurador.bat` → configuración
+
+Desde la línea de comandos:
+
 ```bash
-git clone <tu-repositorio>
-cd publicador-automatico-marketplace
+py publicar_marketplace.py --modulo publicar
+py publicar_marketplace.py --modulo extraer
+py publicar_marketplace.py --secuencia
+py publicar_marketplace.py --tarea=NombreDeLaTarea
 ```
 
-### 2. Instalar dependencias
-```bash
-pip install -r requirements.txt
-```
+---
 
-### 3. Requisitos adicionales
+## 📦 Productos
 
-- **Python 3.8+**
-- **Google Chrome** instalado
-- **ChromeDriver** (se descarga automáticamente)
+Cada producto es una carpeta `ArticulosMarketplace/Articulo_N/` con `datos.txt` (título, precio, categoría, estado, ubicación, descripción…) y una subcarpeta `imagenes/` (hasta 10). Un producto está **listo** cuando tiene título, precio y al menos una imagen. Edítalos desde el **Gestor de Productos**.
 
 ---
 
-## 🎯 Flujo de Trabajo
+## ⚙️ Límites que cuidan tu cuenta
 
-### **MÓDULO 1: Crear Estructura de Carpetas**
+- Máximo de publicaciones por día (`max_publicaciones_por_dia`)
+- Tiempo mínimo entre ejecuciones y entre productos
+- Reintentos automáticos por producto
 
-Crea la estructura base para organizar tus productos.
-
-**Ejecutar:**
-```bash
-# Opción 1: Doble clic
-1_Crear_Estructura.bat
-
-# Opción 2: Comando
-python crear_estructura.py
-```
-
-**Resultado:**
-- Crea 5 carpetas `Articulo_1` a `Articulo_5`
-- Cada una con subcarpeta `imagenes/` y archivo `datos.txt`
-- Archivos `.gitkeep` para mantener carpetas vacías en Git
+Todo se cambia en el **Configurador**; `config_global.txt` es personal de cada equipo y no se sube a GitHub.
 
 ---
 
-### **MÓDULO 2: Extraer Catálogo de WhatsApp** ⭐ NUEVO
+## 🗓️ Tareas automáticas
 
-Extrae productos automáticamente desde un catálogo de WhatsApp Business.
-
-**Ejecutar:**
-```bash
-# Opción 1: Doble clic
-2_Extraer_Catalogo.bat
-
-# Opción 2: Comando
-python extraer_catalogo.py
-```
-
-**Pasos:**
-1. Se abre WhatsApp Web en Chrome
-2. Escanea el código QR (primera vez)
-3. Ingresa el nombre del contacto (ej: "Trabajo John")
-4. Ingresa cantidad de productos a extraer
-5. El bot:
-   - Navega al catálogo del contacto
-   - Extrae título, precio, descripción e imágenes
-   - Descarga las imágenes automáticamente
-   - Crea los archivos `datos.txt` con la información
-
-**Resultado:**
-- Carpetas `Articulo_X` pobladas con imágenes y datos listos para publicar
+El **Gestor de Tareas** crea tareas del Programador de Windows con las acciones y la cantidad de productos que elijas. Cada ejecución queda anotada en `registro_tareas.log`.
 
 ---
 
-### **MÓDULO 3: Publicar en Marketplace**
+## 🧰 Problemas frecuentes
 
-Publica automáticamente los productos en Facebook Marketplace.
-
-**Ejecutar:**
-```bash
-# Opción 1: Doble clic
-3_Publicar_Marketplace.bat
-
-# Opción 2: Comando
-python automatizador_marketplace.py
-```
-
-**Pasos:**
-1. Se abre Facebook en Chrome
-2. Inicia sesión (primera vez)
-3. El bot automáticamente:
-   - Sube imágenes
-   - Llena título, precio, categoría, estado
-   - Agrega descripción
-   - Configura etiquetas y SKU
-   - Publica el artículo
-
-**Resultado:**
-- Producto publicado en Marketplace
-- Sistema actualiza `config.txt` para rotar al siguiente producto
-
----
-
-## 📝 Formato del archivo `datos.txt`
-
-Cada carpeta de artículo debe tener un archivo `datos.txt` con este formato:
-```txt
-titulo=Teclado Mecánico RGB Gamer
-precio=45
-categoria=Electrónica e informática
-estado=Nuevo
-descripcion=Teclado mecánico con iluminación RGB, switches azules, cable desmontable. Perfecto estado.
-disponibilidad=Publicar como disponible
-encuentro_publico=Si
-etiquetas=teclado,rgb,gaming,mecanico
-sku=TECL-001
-```
-
-### Categorías disponibles:
-- Electrónica e informática
-- Vehículos
-- Ropa y accesorios
-- Hogar y jardín
-- Artículos para bebés y niños
-
-### Estados disponibles:
-- Nuevo
-- Usado - Como nuevo
-- Usado - En buen estado
-- Usado - Aceptable
-
----
-
-## 🖼️ Imágenes
-
-- Ubicación: `ArticulosMarketplace/Articulo_X/imagenes/`
-- Formatos soportados: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
-- Máximo: 10 imágenes por producto
-- Se suben en orden alfabético
-
----
-
-## 🔄 Rotación Automática
-
-El sistema usa `config.txt` para rotar productos automáticamente:
-- Después de publicar `Articulo_3`, el siguiente será `Articulo_4`
-- Al llegar al último, vuelve a `Articulo_1`
-- Puedes seleccionar manualmente durante 7 segundos al ejecutar
-
----
-
-## 🛠️ Uso Manual vs Automático
-
-### **Opción A: Manual** (sin WhatsApp)
-1. Ejecuta `1_Crear_Estructura.bat`
-2. Agrega imágenes en `Articulo_X/imagenes/`
-3. Edita `datos.txt` con la información del producto
-4. Ejecuta `3_Publicar_Marketplace.bat`
-
-### **Opción B: Automático** (con WhatsApp) ⭐
-1. Ejecuta `1_Crear_Estructura.bat`
-2. Ejecuta `2_Extraer_Catalogo.bat`
-3. Ejecuta `3_Publicar_Marketplace.bat`
-
----
-
-## 🔐 Seguridad
-
-- Los perfiles de Chrome se guardan localmente
-- **NO subas** las carpetas `perfil_bot_marketplace/` ni `perfil_whatsapp_extractor/` a Git
-- El `.gitignore` ya está configurado para proteger datos sensibles
-
----
-
-## 📦 Dependencias
-
-- **selenium**: Automatización de navegadores
-- **webdriver-manager**: Gestión automática de ChromeDriver
-- **requests**: Descarga de imágenes
-
----
-
-## ❓ Solución de Problemas
-
-### El navegador no se abre
-- Verifica que Chrome esté instalado
-- Ejecuta: `pip install --upgrade selenium webdriver-manager`
-
-### WhatsApp Web no carga
-- Asegúrate de tener buena conexión a internet
-- Cierra otras sesiones de WhatsApp Web
-- Escanea el código QR cuando aparezca
-
-### No encuentra el contacto en WhatsApp
-- Verifica que el nombre sea exacto (ej: "Trabajo John")
-- Asegúrate de que el contacto tenga catálogo de productos
-
-### Error al publicar en Marketplace
-- Verifica que estés logueado en Facebook
-- Revisa que las imágenes existan en la carpeta
-- Confirma que el archivo `datos.txt` tenga todos los campos
-
----
-
-## 📄 Licencia
-
-Este proyecto es de uso personal/comercial.
-
----
-
-## 🤝 Contribuciones
-
-Desarrollado para automatizar la publicación en Facebook Marketplace con integración de catálogos de WhatsApp Business.
-
----
-
-## 📞 Soporte
-
-Para problemas o mejoras, revisa la documentación en cada módulo:
-- `compartido/gestor_archivos.py` - Gestión de carpetas
-- `extractores/extractor_whatsapp.py` - Extracción de WhatsApp
-- `publicadores/publicador_marketplace.py` - Publicación en Marketplace
+- **El navegador no abre**: cierra el navegador y vuelve a intentar; se reintenta una vez solo.
+- **Facebook pide iniciar sesión o verificar**: hazlo en la ventana que se abrió; el programa espera hasta 2–3 minutos.
+- **Un producto no se publica**: revisa que tenga ✅ en el Gestor de Productos.

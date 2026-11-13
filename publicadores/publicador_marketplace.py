@@ -1,4 +1,3 @@
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -6,900 +5,536 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import os
 
+from compartido.navegador import abrir_navegador
+
 
 class PublicadorMarketplace:
     """Maneja la automatización de publicaciones en Facebook Marketplace"""
-    
-    def __init__(self):
+
+    def __init__(self, config=None):
         self.driver = None
         self.wait = None
-    
+        self.config = config or {}
+        self.sesion_verificada = False
+
     def iniciar_navegador(self):
-        """Inicia Chrome con perfil dedicado - SIN webdriver-manager"""
-        print("🌐 Iniciando Chrome...")
-        
-        opciones = webdriver.ChromeOptions()
-        
-        ruta_perfil_bot = os.path.join(os.getcwd(), "perfiles", "marketplace_bot")
-        opciones.add_argument(f"--user-data-dir={ruta_perfil_bot}")
-        
-        opciones.add_argument("--disable-blink-features=AutomationControlled")
-        opciones.add_experimental_option("excludeSwitches", ["enable-automation"])
-        opciones.add_experimental_option('useAutomationExtension', False)
-        
-        # USAR CHROME SIN WEBDRIVER-MANAGER
-        try:
-            print("   Iniciando Chrome sin webdriver-manager...")
-            self.driver = webdriver.Chrome(options=opciones)
-            print("✅ Navegador iniciado correctamente")
-        except Exception as e:
-            print(f"\n❌ Error al iniciar Chrome: {e}\n")
-            print("="*60)
-            print("🔧 SOLUCIONES:")
-            print("="*60)
-            print("1. Descarga ChromeDriver compatible con tu Chrome:")
-            print("   https://googlechromelabs.github.io/chrome-for-testing/")
-            print()
-            print("2. Extrae chromedriver.exe")
-            print()
-            print("3. Agrégalo al PATH de Windows O")
-            print("   Colócalo en: C:\\Windows\\System32\\")
-            print()
-            print("4. Verifica tu versión de Chrome:")
-            print("   Abre Chrome -> Menú (3 puntos) -> Ayuda -> Acerca de")
-            print("="*60 + "\n")
-            raise
-        
+        """Abre el navegador configurado (Firefox, Chrome o Edge) con su perfil de Marketplace"""
+        self.driver = abrir_navegador(self.config)
         self.wait = WebDriverWait(self.driver, 20)
-    
+
+    @staticmethod
+    def _notificar(titulo, mensaje):
+        """Aviso emergente para que el usuario vea que debe actuar en el navegador"""
+        import threading
+
+        def _mostrar():
+            try:
+                import tkinter as tk
+                from compartido.toast import Toast
+                root = tk.Tk()
+                root.withdraw()
+                Toast.advertencia(root, f"{titulo}\n{mensaje}", duracion=8000)
+                root.after(8500, root.destroy)
+                root.mainloop()
+            except Exception:
+                pass
+        threading.Thread(target=_mostrar, daemon=True).start()
+
+    def _es_pagina_seguridad(self):
+        """Detecta si Facebook mostró una verificación de seguridad"""
+        try:
+            url = self.driver.current_url
+        except Exception:
+            return False
+        return any(p in url for p in ('two_step_verification', 'checkpoint', 'login/device-based',
+                                      'security_check', 'identity_confirmation', 'recaptcha', 'captcha'))
+
+    def _esperar_resolucion_seguridad(self, timeout=180):
+        """Espera a que el usuario resuelva la verificación de seguridad en el navegador"""
+        transcurrido = 0
+        while transcurrido < timeout:
+            time.sleep(5)
+            transcurrido += 5
+            try:
+                url = self.driver.current_url
+                if not self._es_pagina_seguridad() and 'login' not in url and 'facebook.com' in url:
+                    print("✅ Verificación de seguridad resuelta")
+                    time.sleep(3)
+                    return True
+                print(f"⏳ Esperando que resuelvas la verificación... ({timeout - transcurrido}s restantes)")
+            except Exception:
+                return True
+        print("❌ Tiempo de espera agotado para la verificación de seguridad")
+        return False
+
     def esperar_login_facebook(self):
-        """Espera a que el usuario inicie sesión en Facebook si es necesario"""
+        """Verifica la sesión de Facebook una sola vez por ejecución; si hace falta espera a que el usuario inicie sesión"""
+        if self.sesion_verificada:
+            return True
+
         print("🔐 Verificando sesión de Facebook...")
-        
         try:
             self.driver.get("https://www.facebook.com")
             time.sleep(3)
-            
-            try:
-                login_elements = self.driver.find_elements(By.XPATH, 
-                    "//input[@name='email' or @name='pass']")
-                
-                if len(login_elements) > 0:
-                    print("\n⚠️  NO HAS INICIADO SESIÓN EN FACEBOOK")
-                    print("=" * 60)
-                    print("Por favor INICIA SESIÓN en Facebook ahora.")
-                    print("Tienes 2 MINUTOS para iniciar sesión.")
-                    print("=" * 60 + "\n")
-                    
-                    tiempo_espera = 120
-                    for segundos_restantes in range(tiempo_espera, 0, -5):
-                        try:
-                            login_check = self.driver.find_elements(By.XPATH, 
-                                "//input[@name='email' or @name='pass']")
-                            
-                            if len(login_check) == 0:
-                                print("✅ Sesión iniciada correctamente")
-                                return True
-                            
-                            print(f"⏳ Esperando login... ({segundos_restantes}s restantes)")
-                            time.sleep(5)
-                        except:
-                            print("✅ Sesión iniciada correctamente")
-                            return True
-                    
-                    print("❌ Tiempo de espera agotado. No se detectó inicio de sesión.")
-                    return False
-                else:
-                    print("✅ Ya tienes sesión activa en Facebook")
-                    return True
-                    
-            except:
+
+            if self._es_pagina_seguridad():
+                self._notificar("Verificación de seguridad requerida",
+                                "Facebook pide verificar tu cuenta.\nResuélvelo en el navegador. Tienes 3 minutos.")
+                print("\n⚠️  FACEBOOK REQUIERE VERIFICACIÓN DE SEGURIDAD")
+                print("   Resuélvela en el navegador. Tienes 3 MINUTOS.\n")
+                self.sesion_verificada = self._esperar_resolucion_seguridad(180)
+                return self.sesion_verificada
+
+            campos_login = self.driver.find_elements(By.XPATH, "//input[@name='email' or @name='pass']")
+            if not campos_login:
                 print("✅ Ya tienes sesión activa en Facebook")
+                self.sesion_verificada = True
                 return True
-                
+
+            self._notificar("Iniciar sesión en Facebook", "Ingresa tus credenciales en el navegador.\nTienes 2 minutos.")
+            print("\n⚠️  NO HAS INICIADO SESIÓN EN FACEBOOK")
+            print("   Inicia sesión en el navegador. Tienes 2 MINUTOS.\n")
+
+            timeout = 120
+            transcurrido = 0
+            while transcurrido < timeout:
+                time.sleep(5)
+                transcurrido += 5
+                try:
+                    if self._es_pagina_seguridad():
+                        print("\n⚠️  Facebook pide verificación adicional...")
+                        self.sesion_verificada = self._esperar_resolucion_seguridad(180)
+                        return self.sesion_verificada
+                    if not self.driver.find_elements(By.XPATH, "//input[@name='email' or @name='pass']"):
+                        print("✅ Sesión iniciada correctamente")
+                        time.sleep(3)
+                        self.sesion_verificada = True
+                        return True
+                    print(f"⏳ Esperando login... ({timeout - transcurrido}s restantes)")
+                except Exception:
+                    print("✅ Sesión iniciada correctamente")
+                    self.sesion_verificada = True
+                    return True
+
+            print("❌ Tiempo de espera agotado. No se detectó inicio de sesión.")
+            return False
+
         except Exception as e:
             print(f"⚠️  Error verificando sesión: {e}")
             print("Continuando de todos modos...")
             return True
-    
-    def cerrar_overlays(self):
-        """Cierra modals/overlays que puedan estar bloqueando la interacción - VERSIÓN AGRESIVA"""
-        try:
-            # ESTRATEGIA 1: Overlays con tabindex="-1"
-            overlays = self.driver.find_elements(
-                By.XPATH,
-                "//div[@tabindex='-1']"
-            )
-            
-            count = 0
-            for overlay in overlays:
+
+    # ==================== AYUDANTES DEL FORMULARIO ====================
+    # El formulario de Marketplace (nov 2026) marca cada campo con un <span> con su nombre visible:
+    #   Título, Precio, SKU      → span + <input> hermano
+    #   Descripción, Etiquetas   → span + <div> con <textarea>
+    #   Categoría, Estado        → <label role="combobox"> que contiene el span
+    #   Ubicación                → <input role="combobox" aria-label="Ubicación">
+    #   Encuentro en un lugar público → <div role="checkbox"> en un contenedor varios niveles arriba
+    #   Siguiente / Publicar     → <div role="button" aria-label="..."> (aria-disabled="true" si falta algo)
+    # Descripción, etiquetas, SKU, ubicación y entrega están dentro del bloque plegable "Más detalles".
+
+    CATEGORIA_DEFECTO = 'Electrónica e informática'
+    ESTADO_DEFECTO = 'Nuevo'
+
+    def _buscar(self, xpath, tiempo=0):
+        """Primer elemento visible que cumple el xpath (espera hasta 'tiempo' segundos). None si no hay"""
+        limite = time.time() + tiempo
+        while True:
+            for elemento in self.driver.find_elements(By.XPATH, xpath):
                 try:
-                    # Verificar si tiene las clases problemáticas
-                    clases = overlay.get_attribute('class') or ''
-                    if 'x1uvtmcs' in clases or 'x4k7w5x' in clases:
-                        # Hacer invisible con JavaScript
-                        self.driver.execute_script(
-                            "arguments[0].style.display = 'none'; arguments[0].style.visibility = 'hidden';",
-                            overlay
-                        )
-                        count += 1
-                except:
+                    if elemento.is_displayed():
+                        return elemento
+                except Exception:
                     pass
-            
-            # ESTRATEGIA 2: Cualquier div que esté cubriendo toda la pantalla
-            try:
-                self.driver.execute_script("""
-                    var divs = document.querySelectorAll('div[tabindex="-1"]');
-                    divs.forEach(function(div) {
-                        var style = window.getComputedStyle(div);
-                        if (style.position === 'fixed' || style.position === 'absolute') {
-                            div.style.display = 'none';
-                            div.style.visibility = 'hidden';
-                            div.style.pointerEvents = 'none';
-                        }
-                    });
-                """)
-            except:
-                pass
-            
-            if count > 0:
-                print(f"   🧹 {count} overlay(s) removido(s)")
-                time.sleep(0.5)
-        except:
-            pass
-    
-    def ir_a_marketplace(self):
-        """Navega a la página de creación de publicación en Marketplace"""
-        print("📍 Navegando a Marketplace...")
-        url = "https://www.facebook.com/marketplace/create/item"
-        self.driver.get(url)
-        time.sleep(1.5)
-        print("✅ En página de creación")
-        
-        # Cerrar overlays que puedan bloquear interacción
-        self.cerrar_overlays()
-    
-    def esperar_elemento(self, selector, tipo=By.CSS_SELECTOR, tiempo=20):
-        """Espera a que un elemento esté presente y visible"""
+            if time.time() >= limite:
+                return None
+            time.sleep(0.5)
+
+    def _clic(self, elemento):
+        """Clic con JavaScript: evita el error 'element click intercepted' por capas encima"""
+        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", elemento)
+        time.sleep(0.3)
+        self.driver.execute_script("arguments[0].click();", elemento)
+
+    @staticmethod
+    def _xpath_texto(texto):
+        """Literal xpath seguro aunque el texto tenga comillas simples"""
+        if "'" not in texto:
+            return f"'{texto}'"
+        partes = texto.split("'")
+        return "concat(" + ", \"'\", ".join(f"'{p}'" for p in partes) + ")"
+
+    def _campo_texto(self, etiqueta, tiempo=0):
+        """input o textarea que acompaña al span con ese nombre"""
+        t = self._xpath_texto(etiqueta)
+        return self._buscar(f"//span[normalize-space()={t}]/parent::div//*[self::input or self::textarea]", tiempo)
+
+    def _escribir(self, campo, texto):
+        """
+        Escribe en un input/textarea controlado por React.
+        send_keys no admite emojis en Chrome/Edge, así que en ese caso se usa el setter nativo + evento input.
+        """
+        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", campo)
         try:
-            elemento = WebDriverWait(self.driver, tiempo).until(
-                EC.presence_of_element_located((tipo, selector))
-            )
-            return elemento
-        except:
-            return None
-    
+            campo.click()
+        except Exception:
+            self.driver.execute_script("arguments[0].focus();", campo)
+        campo.send_keys(Keys.CONTROL, 'a')
+        campo.send_keys(Keys.DELETE)
+        if all(ord(c) <= 0xFFFF for c in texto):
+            campo.send_keys(texto)
+        else:
+            self.driver.execute_script("""
+                const campo = arguments[0];
+                const prototipo = campo.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+                Object.getOwnPropertyDescriptor(prototipo, 'value').set.call(campo, arguments[1]);
+                campo.dispatchEvent(new Event('input', { bubbles: true }));
+                campo.dispatchEvent(new Event('change', { bubbles: true }));
+            """, campo, texto)
+        time.sleep(0.3)
+        return (campo.get_attribute('value') or '').strip() != ''
+
+    def _elegir_en_lista(self, etiqueta, valor):
+        """Abre la lista desplegable (Categoría, Estado, Disponibilidad) y elige la opción con ese texto"""
+        t = self._xpath_texto(etiqueta)
+        combo = self._buscar(f"//label[@role='combobox'][.//span[normalize-space()={t}]]", 10)
+        if not combo:
+            print(f"   ⚠️  No se encontró la lista '{etiqueta}'")
+            return False
+
+        v = self._xpath_texto(valor)
+        for intento in range(2):
+            self._clic(combo)
+            time.sleep(1)
+            opcion = (self._buscar(f"//*[@role='option'][.//span[normalize-space()={v}]]", 3) or
+                      self._buscar(f"//*[@role='listbox']//span[normalize-space()={v}]", 1) or
+                      self._buscar(f"//*[@role='dialog' or @role='menu']//span[normalize-space()={v}]", 1))
+            if opcion:
+                self._clic(opcion)
+                time.sleep(0.8)
+                if valor.lower() in (combo.text or '').lower():
+                    return True
+            # Cerrar la lista antes de reintentar
+            try:
+                self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+            except Exception:
+                pass
+            time.sleep(0.5)
+
+        print(f"   ⚠️  No se pudo elegir '{valor}' en '{etiqueta}'")
+        return False
+
+    def _abrir_mas_detalles(self):
+        """Despliega el bloque 'Más detalles' si está cerrado (ahí están descripción, ubicación y entrega)"""
+        if self._campo_texto('Descripción'):
+            return True
+        boton = self._buscar("//span[normalize-space()='Más detalles']", 5)
+        if not boton:
+            print("   ⚠️  No se encontró 'Más detalles'")
+            return False
+        self._clic(boton)
+        return self._campo_texto('Descripción', 5) is not None
+
+    # ==================== CAMPOS DEL FORMULARIO ====================
+
+    def llenar_titulo(self, titulo):
+        print(f"✍️  Título: {titulo}")
+        campo = self._campo_texto('Título', 10)
+        if campo and self._escribir(campo, titulo):
+            print("✅ Título ingresado")
+            return True
+        print("❌ No se pudo ingresar el título")
+        return False
+
+    def llenar_precio(self, precio):
+        """Marketplace solo acepta precio entero"""
+        try:
+            precio_texto = str(int(float(str(precio).replace(',', '.'))))
+        except ValueError:
+            precio_texto = ''.join(c for c in str(precio) if c.isdigit()) or '0'
+        print(f"💰 Precio: ${precio_texto}")
+        campo = self._campo_texto('Precio', 5)
+        if campo and self._escribir(campo, precio_texto):
+            print("✅ Precio ingresado")
+            return True
+        print("❌ No se pudo ingresar el precio")
+        return False
+
+    def seleccionar_categoria(self, categoria):
+        if not categoria:
+            categoria = self.CATEGORIA_DEFECTO
+            print(f"   ℹ️  El producto no tiene categoría: se usa '{categoria}'")
+        print(f"📁 Categoría: {categoria}")
+        if self._elegir_en_lista('Categoría', categoria):
+            print("✅ Categoría seleccionada")
+            return True
+        return False
+
+    def seleccionar_estado(self, estado):
+        estado = estado or self.ESTADO_DEFECTO
+        print(f"🏷️  Estado: {estado}")
+        if self._elegir_en_lista('Estado', estado):
+            print("✅ Estado seleccionado")
+            return True
+        return False
+
+    def llenar_descripcion(self, descripcion):
+        if not descripcion:
+            print("⏭️  Sin descripción, omitiendo...")
+            return True
+        print(f"📝 Descripción ({len(descripcion)} caracteres)")
+        self._abrir_mas_detalles()
+        campo = self._campo_texto('Descripción', 5)
+        if campo and self._escribir(campo, descripcion):
+            print("✅ Descripción ingresada")
+            return True
+        print("⚠️  No se pudo ingresar la descripción")
+        return False
+
+    def configurar_ubicacion(self, ubicacion_deseada):
+        """Facebook la llena con la ciudad del perfil; solo se cambia si es distinta"""
+        if not ubicacion_deseada:
+            return True
+        self._abrir_mas_detalles()
+        campo = self._buscar("//input[@aria-label='Ubicación']", 5)
+        if not campo:
+            print("⚠️  No se encontró el campo de ubicación (se deja la de tu perfil)")
+            return False
+
+        actual = (campo.get_attribute('value') or '').strip()
+        ciudad = ubicacion_deseada.split(',')[0].strip().lower()
+        if ciudad and ciudad in actual.lower():
+            print(f"📍 Ubicación: {actual}")
+            return True
+
+        print(f"📍 Cambiando ubicación: {actual or '(vacía)'} → {ubicacion_deseada}")
+        self._escribir(campo, ubicacion_deseada)
+        time.sleep(2)
+        opcion = self._buscar("//*[@role='listbox']//*[@role='option'] | //ul[@role='listbox']/li", 5)
+        if opcion:
+            self._clic(opcion)
+            time.sleep(1)
+            print(f"✅ Ubicación: {campo.get_attribute('value')}")
+            return True
+        print("⚠️  Facebook no sugirió esa ubicación")
+        return False
+
+    def llenar_etiquetas(self, etiquetas):
+        lista = [e.strip() for e in (etiquetas or '').split(',') if e.strip()][:20]
+        if not lista:
+            return True
+        print(f"🏷️  Etiquetas: {', '.join(lista)}")
+        self._abrir_mas_detalles()
+        campo = self._campo_texto('Etiquetas de producto', 5)
+        if not campo:
+            print("⚠️  No se encontró el campo de etiquetas")
+            return False
+        self._clic(campo)
+        for etiqueta in lista:
+            campo.send_keys(etiqueta)
+            time.sleep(0.3)
+            campo.send_keys(Keys.RETURN)
+            time.sleep(0.3)
+        print(f"✅ {len(lista)} etiqueta(s) agregada(s)")
+        return True
+
+    def llenar_sku(self, sku):
+        if not sku or not sku.strip():
+            return True
+        print(f"🔢 SKU: {sku}")
+        self._abrir_mas_detalles()
+        campo = self._campo_texto('SKU', 5)
+        if campo and self._escribir(campo, sku.strip()):
+            print("✅ SKU ingresado")
+            return True
+        print("⚠️  No se pudo ingresar el SKU")
+        return False
+
+    def configurar_disponibilidad(self, disponibilidad, encuentro_publico):
+        """Marca 'Encuentro en un lugar público' (la disponibilidad ya viene como 'Publicar como disponible')"""
+        if (encuentro_publico or '').strip().lower() not in ('si', 'sí'):
+            return True
+        self._abrir_mas_detalles()
+        casilla = self._buscar("//span[normalize-space()='Encuentro en un lugar público']"
+                               "/ancestor::div[.//div[@role='checkbox']][1]//div[@role='checkbox']", 5)
+        if not casilla:
+            print("⚠️  No se encontró 'Encuentro en un lugar público'")
+            return False
+        if casilla.get_attribute('aria-checked') != 'true':
+            self._clic(casilla)
+            time.sleep(0.5)
+        if casilla.get_attribute('aria-checked') == 'true':
+            print("✅ Encuentro en un lugar público marcado")
+            return True
+        print("⚠️  No se pudo marcar 'Encuentro en un lugar público'")
+        return False
+
+    # ==================== PUBLICAR Y VERIFICAR ====================
+
+    def _boton_habilitado(self, nombre, tiempo):
+        """Botón role=button con ese aria-label, esperando a que se habilite. None si sigue desactivado"""
+        limite = time.time() + tiempo
+        while time.time() < limite:
+            boton = self._buscar(f"//div[@role='button'][@aria-label='{nombre}']")
+            if boton and boton.get_attribute('aria-disabled') != 'true':
+                return boton
+            time.sleep(1)
+        return None
+
+    def _errores_visibles(self):
+        """Mensajes de error que muestra el formulario bajo los campos (ej. 'Selecciona una categoría.')"""
+        textos = []
+        for xpath in ("//span[starts-with(normalize-space(), 'Introduce')]",
+                      "//span[starts-with(normalize-space(), 'Selecciona')]",
+                      "//span[starts-with(normalize-space(), 'Sube al menos')]"):
+            for el in self.driver.find_elements(By.XPATH, xpath):
+                try:
+                    if el.is_displayed() and el.text.strip() and el.text.strip() not in textos:
+                        textos.append(el.text.strip())
+                except Exception:
+                    pass
+        return textos
+
+    def _guardar_captura_error(self):
+        try:
+            from compartido.gestor_archivos import _base_dir
+            ruta = os.path.join(_base_dir(), "error_publicacion.png")
+            self.driver.save_screenshot(ruta)
+            print(f"📸 Captura guardada en {ruta}")
+        except Exception:
+            pass
+
+    def publicar_articulo(self):
+        """
+        Siguiente → Publicar, y confirma que Facebook aceptó la publicación.
+        Solo devuelve True si la página salió del formulario de creación.
+        """
+        print("🚀 Publicando artículo...")
+
+        boton = self._boton_habilitado('Siguiente', 20)
+        if not boton:
+            errores = self._errores_visibles()
+            print("❌ El botón 'Siguiente' sigue desactivado: falta algo obligatorio")
+            for error in errores:
+                print(f"   • {error}")
+            self._guardar_captura_error()
+            return False
+        self._clic(boton)
+        print("✅ Clic en 'Siguiente'")
+        time.sleep(3)
+
+        boton = self._boton_habilitado('Publicar', 20)
+        if not boton:
+            print("❌ No apareció el botón 'Publicar'")
+            self._guardar_captura_error()
+            return False
+        self._clic(boton)
+        print("✅ Clic en 'Publicar'")
+
+        # Confirmar: Facebook sale de /marketplace/create cuando acepta la publicación
+        limite = time.time() + 45
+        while time.time() < limite:
+            time.sleep(2)
+            try:
+                if '/marketplace/create' not in self.driver.current_url:
+                    print("✅ Facebook aceptó la publicación")
+                    return True
+            except Exception:
+                pass
+        print("❌ Facebook no confirmó la publicación (la página sigue en el formulario)")
+        self._guardar_captura_error()
+        return False
+
+    def ir_a_marketplace(self):
+        """Abre el formulario de crear publicación y espera a que cargue"""
+        print("📍 Abriendo el formulario de Marketplace...")
+        self.driver.get("https://www.facebook.com/marketplace/create/item")
+        if self._campo_texto('Título', 20):
+            print("✅ Formulario listo")
+            self.cerrar_overlays()
+            return True
+        print("❌ El formulario de Marketplace no cargó")
+        return False
+
     def subir_imagenes(self, rutas_imagenes):
-        """Sube las imágenes del artículo"""
         if not rutas_imagenes:
             print("⚠️  No hay imágenes para subir")
             return False
-        
-        print(f"📸 Subiendo {len(rutas_imagenes)} imágenes...")
-        
+        print(f"📸 Subiendo {len(rutas_imagenes)} imagen(es)...")
         try:
-            input_archivo = self.driver.find_element(By.CSS_SELECTOR, "input[type='file'][accept*='image']")
-            
-            rutas_concatenadas = "\n".join(rutas_imagenes)
-            input_archivo.send_keys(rutas_concatenadas)
-            
-            time.sleep(1)
+            entrada = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file'][accept*='image']")))
+            entrada.send_keys("\n".join(rutas_imagenes))
+            time.sleep(2 + len(rutas_imagenes))
             print("✅ Imágenes subidas")
             return True
         except Exception as e:
             print(f"❌ Error subiendo imágenes: {e}")
             return False
-    
-    def llenar_titulo(self, titulo):
-        """Llena el campo de título"""
-        print(f"✍️  Título: {titulo}")
+
+    def cerrar_overlays(self):
+        """Oculta avisos emergentes de Facebook que tapan el formulario"""
         try:
-            campo = self.driver.find_element(By.XPATH, "//span[text()='Título']/../..//input[@dir='ltr']")
-            campo.clear()
-            campo.send_keys(titulo)
-            time.sleep(0.3)
-            print("✅ Título ingresado")
-            return True
-        except Exception as e:
-            print(f"❌ Error en título: {e}")
-        return False
-    
-    def llenar_precio(self, precio):
-        """Llena el campo de precio - Formato correcto sin decimales"""
-        print(f"💰 Precio original: ${precio}")
-        
-        try:
-            try:
-                precio_float = float(precio)
-                precio_entero = int(precio_float)
-                precio_texto = str(precio_entero)
-            except:
-                precio_texto = str(precio).replace('.', '').replace(',', '')
-            
-            print(f"💰 Precio formateado: ${precio_texto}")
-            
-            campo = self.driver.find_element(By.XPATH, "//span[text()='Precio']/../..//input[@dir='ltr']")
-            campo.clear()
-            time.sleep(0.3)
-            
-            campo.send_keys(precio_texto)
-            time.sleep(0.5)
-            
-            print("✅ Precio ingresado correctamente")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error en precio: {e}")
-        return False
-    
-    def seleccionar_categoria(self, categoria):
-        """
-        Selecciona la categoría del desplegable - VERSIÓN ROBUSTA
-        
-        Estrategias múltiples de respaldo:
-        1. Método original (funciona en artículos 1-4)
-        2. Buscar dropdown por aria-label
-        3. Buscar usando role='combobox'
-        4. JavaScript click si falla Selenium
-        5. Reintentar con espera explícita
-        """
-        print(f"📁 Categoría: {categoria}")
-        
-        # ========================================
-        # ESTRATEGIA 1: Método Original
-        # ========================================
-        try:
-            label_categoria = self.driver.find_element(By.XPATH, "//span[text()='Categoría']/../..")
-            
-            # Scroll para asegurar visibilidad
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
-                label_categoria
-            )
-            time.sleep(0.5)
-            
-            label_categoria.click()
-            time.sleep(1.2)  # Aumentado para dar tiempo al dropdown
-            
-            # Buscar opción en el dropdown
-            opcion = self.driver.find_element(By.XPATH, f"//span[contains(text(), '{categoria}')]")
-            opcion.click()
-            time.sleep(0.3)
-            
-            print("✅ Categoría seleccionada (Estrategia 1)")
-            return True
-            
-        except Exception as e1:
-            print(f"   ⚠️  Estrategia 1 falló: {str(e1)[:100]}")
-        
-        
-        # ========================================
-        # ESTRATEGIA 2: Buscar por aria-label
-        # ========================================
-        try:
-            print("   🔄 Probando Estrategia 2 (aria-label)...")
-            
-            campo_categoria = self.driver.find_element(
-                By.XPATH, 
-                "//input[@aria-label='Categoría'] | //label[contains(@aria-label, 'Categoría')]"
-            )
-            
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
-                campo_categoria
-            )
-            time.sleep(0.5)
-            
-            campo_categoria.click()
-            time.sleep(1.2)
-            
-            # Buscar opción
-            opcion = WebDriverWait(self.driver, 5).until(
-                EC.presence_of_element_located((By.XPATH, f"//span[contains(text(), '{categoria}')]"))
-            )
-            opcion.click()
-            time.sleep(0.3)
-            
-            print("✅ Categoría seleccionada (Estrategia 2)")
-            return True
-            
-        except Exception as e2:
-            print(f"   ⚠️  Estrategia 2 falló: {str(e2)[:100]}")
-        
-        
-        # ========================================
-        # ESTRATEGIA 3: Buscar role='combobox'
-        # ========================================
-        try:
-            print("   🔄 Probando Estrategia 3 (role=combobox)...")
-            
-            # Buscar el label con role='combobox' que contenga "Categoría"
-            combobox = self.driver.find_element(
-                By.XPATH,
-                "//label[@role='combobox']//span[contains(text(), 'Categoría')]/ancestor::label"
-            )
-            
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
-                combobox
-            )
-            time.sleep(0.5)
-            
-            # Click en el combobox
-            try:
-                combobox.click()
-            except:
-                # Si falla el click normal, usar JavaScript
-                self.driver.execute_script("arguments[0].click();", combobox)
-            
-            time.sleep(1.5)
-            
-            # Esperar a que aparezca el dropdown
-            opcion = WebDriverWait(self.driver, 5).until(
-                EC.element_to_be_clickable((By.XPATH, f"//span[contains(text(), '{categoria}')]"))
-            )
-            
-            # Click en la opción
-            try:
-                opcion.click()
-            except:
-                self.driver.execute_script("arguments[0].click();", opcion)
-            
-            time.sleep(0.3)
-            
-            print("✅ Categoría seleccionada (Estrategia 3)")
-            return True
-            
-        except Exception as e3:
-            print(f"   ⚠️  Estrategia 3 falló: {str(e3)[:100]}")
-        
-        
-        # ========================================
-        # ESTRATEGIA 4: Buscar CUALQUIER span con "Categoría"
-        # ========================================
-        try:
-            print("   🔄 Probando Estrategia 4 (span genérico)...")
-            
-            # Buscar todos los elementos que contengan "Categoría"
-            elementos_categoria = self.driver.find_elements(
-                By.XPATH,
-                "//*[contains(text(), 'Categoría')]"
-            )
-            
-            for elem in elementos_categoria:
-                try:
-                    if not elem.is_displayed():
-                        continue
-                    
-                    # Intentar encontrar ancestro clickeable
-                    ancestros = [
-                        "./ancestor::label[1]",
-                        "./ancestor::div[@role='button'][1]",
-                        "./parent::*/parent::*",
-                    ]
-                    
-                    for xpath_ancestro in ancestros:
-                        try:
-                            contenedor = elem.find_element(By.XPATH, xpath_ancestro)
-                            
-                            self.driver.execute_script(
-                                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
-                                contenedor
-                            )
-                            time.sleep(0.5)
-                            
-                            # Click
-                            try:
-                                contenedor.click()
-                            except:
-                                self.driver.execute_script("arguments[0].click();", contenedor)
-                            
-                            time.sleep(1.5)
-                            
-                            # Buscar opción
-                            opcion = WebDriverWait(self.driver, 3).until(
-                                EC.presence_of_element_located((By.XPATH, f"//span[contains(text(), '{categoria}')]"))
-                            )
-                            
-                            try:
-                                opcion.click()
-                            except:
-                                self.driver.execute_script("arguments[0].click();", opcion)
-                            
-                            time.sleep(0.3)
-                            
-                            print("✅ Categoría seleccionada (Estrategia 4)")
-                            return True
-                            
-                        except:
-                            continue
-                            
-                except:
-                    continue
-            
-        except Exception as e4:
-            print(f"   ⚠️  Estrategia 4 falló: {str(e4)[:100]}")
-        
-        
-        # ========================================
-        # ESTRATEGIA 5: Recargar página y reintentar
-        # ========================================
-        try:
-            print("   🔄 Probando Estrategia 5 (refrescar y reintentar)...")
-            
-            # Guardar URL actual
-            url_actual = self.driver.current_url
-            
-            # Refrescar
-            self.driver.refresh()
-            time.sleep(3)
-            
-            # Reintentar con Estrategia 1
-            label_categoria = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//span[text()='Categoría']/../.."))
-            )
-            
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
-                label_categoria
-            )
-            time.sleep(0.5)
-            
-            label_categoria.click()
-            time.sleep(1.5)
-            
-            opcion = WebDriverWait(self.driver, 5).until(
-                EC.element_to_be_clickable((By.XPATH, f"//span[contains(text(), '{categoria}')]"))
-            )
-            opcion.click()
-            time.sleep(0.3)
-            
-            print("✅ Categoría seleccionada (Estrategia 5 - con refresh)")
-            return True
-            
-        except Exception as e5:
-            print(f"   ⚠️  Estrategia 5 falló: {str(e5)[:100]}")
-        
-        
-        # ========================================
-        # TODAS LAS ESTRATEGIAS FALLARON
-        # ========================================
-        print(f"❌ Error en categoría: No se pudo seleccionar después de 5 intentos")
-        
-        # Tomar screenshot para debug
-        try:
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            screenshot_path = f"error_categoria_{timestamp}.png"
-            self.driver.save_screenshot(screenshot_path)
-            print(f"   📸 Screenshot guardado: {screenshot_path}")
-        except:
+            ocultos = self.driver.execute_script("""
+                let n = 0;
+                document.querySelectorAll("div[tabindex='-1']").forEach(d => {
+                    const c = d.className || '';
+                    if (typeof c === 'string' && (c.includes('x1uvtmcs') || c.includes('x4k7w5x'))) {
+                        d.style.display = 'none'; n++;
+                    }
+                });
+                return n;
+            """)
+            if ocultos:
+                print(f"   🧹 {ocultos} aviso(s) ocultado(s)")
+        except Exception:
             pass
-        
-        return False
-    
-    def seleccionar_estado(self, estado):
-        """Selecciona el estado del artículo"""
-        print(f"🏷️  Estado: {estado}")
-        
-        # Cerrar overlays primero
-        self.cerrar_overlays()
-        
-        try:
-            label_estado = self.driver.find_element(By.XPATH, "//span[text()='Estado']/../..")
-            
-            # Scroll al elemento
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});",
-                label_estado
-            )
-            time.sleep(0.5)
-            
-            # Intentar click normal
-            try:
-                label_estado.click()
-            except:
-                # Si falla, usar JavaScript
-                self.driver.execute_script("arguments[0].click();", label_estado)
-            
-            time.sleep(0.8)
-            
-            opcion = self.driver.find_element(By.XPATH, f"//span[text()='{estado}']")
-            
-            try:
-                opcion.click()
-            except:
-                self.driver.execute_script("arguments[0].click();", opcion)
-            
-            time.sleep(0.3)
-            print("✅ Estado seleccionado")
-            return True
-        except Exception as e:
-            print(f"❌ Error en estado: {e}")
-        return False
-    
-    def configurar_ubicacion(self, ubicacion_deseada="Guayaquil"):
-        """Configura la ubicación seleccionando del dropdown"""
-        print(f"📍 Configurando ubicación: {ubicacion_deseada}")
-        
-        try:
-            selectores_ubicacion = [
-                "//label[contains(., 'Ubicación')]//input",
-                "//span[text()='Ubicación']/../..//input",
-                "//input[@placeholder='Ubicación']",
-                "//input[contains(@aria-label, 'Ubicación')]"
-            ]
-            
-            campo_ubicacion = None
-            for selector in selectores_ubicacion:
-                try:
-                    campo_ubicacion = self.driver.find_element(By.XPATH, selector)
-                    if campo_ubicacion:
-                        break
-                except:
-                    continue
-            
-            if not campo_ubicacion:
-                print("⚠️  No se encontró el campo de ubicación")
-                return False
-            
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", 
-                campo_ubicacion
-            )
-            time.sleep(0.8)
-            
-            campo_ubicacion.click()
-            time.sleep(0.5)
-            
-            campo_ubicacion.send_keys(Keys.CONTROL + "a")
-            time.sleep(0.2)
-            campo_ubicacion.send_keys(Keys.DELETE)
-            time.sleep(0.3)
-            
-            campo_ubicacion.send_keys(ubicacion_deseada)
-            time.sleep(3)
-            
-            try:
-                opciones_dropdown = [
-                    "//div[@role='listbox']//div[@role='option']//span[contains(text(), 'Guayaquil')]//ancestor::div[@role='option']",
-                    "//div[@role='option' and contains(., 'Guayaquil') and contains(., 'Ciudad')]",
-                    "//div[@role='listbox']//div[@role='option'][1]"
-                ]
-                
-                opcion_seleccionada = False
-                for selector_opcion in opciones_dropdown:
-                    try:
-                        opciones = self.driver.find_elements(By.XPATH, selector_opcion)
-                        if opciones:
-                            for opcion in opciones:
-                                texto_opcion = opcion.text.lower()
-                                if 'ciudad' in texto_opcion or 'guayaquil' in texto_opcion:
-                                    opcion.click()
-                                    time.sleep(0.5)
-                                    print(f"✅ Seleccionada ubicación del dropdown: {opcion.text[:50]}")
-                                    opcion_seleccionada = True
-                                    break
-                            
-                            if opcion_seleccionada:
-                                break
-                    except:
-                        continue
-                
-                if not opcion_seleccionada:
-                    print("⚠️  No se pudo seleccionar del dropdown, usando Enter")
-                    campo_ubicacion.send_keys(Keys.RETURN)
-                    time.sleep(0.5)
-                
-            except Exception as e:
-                print(f"⚠️  Error seleccionando dropdown: {e}")
-                campo_ubicacion.send_keys(Keys.RETURN)
-                time.sleep(0.5)
-            
-            return True
-            
-        except Exception as e:
-            print(f"⚠️  Error configurando ubicación: {e}")
-            print("   Continuando con ubicación automática...")
-            return False
-    
-    def llenar_descripcion(self, descripcion):
-        """Llena el campo de descripción con soporte multi-línea"""
-        print(f"📝 Accediendo a descripción...")
-        
-        # Cerrar overlays primero
-        self.cerrar_overlays()
-        
-        try:
-            campo_descripcion = self.driver.find_element(By.XPATH, "//textarea[@dir='ltr']")
-            
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});",
-                campo_descripcion
-            )
-            time.sleep(0.8)
-            
-            # Hacer foco en el campo
-            self.driver.execute_script("arguments[0].focus();", campo_descripcion)
-            time.sleep(0.3)
-            
-            # Mostrar preview
-            preview = descripcion[:80].replace('\n', ' ')
-            print(f"📝 Llenando descripción completa ({len(descripcion)} caracteres)...")
-            print(f"    Preview: {preview}...")
-            
-            # MÉTODO 1: Intentar con send_keys primero (más confiable para detectar cambios)
-            try:
-                campo_descripcion.clear()
-                time.sleep(0.2)
-                campo_descripcion.send_keys(descripcion)
-                time.sleep(0.5)
-                
-                # Verificar que se llenó
-                valor_actual = campo_descripcion.get_attribute('value')
-                if valor_actual and len(valor_actual) > 0:
-                    print(f"✅ Descripción ingresada ({len(valor_actual)} caracteres)")
-                    return True
-                else:
-                    print(f"   ⚠️  send_keys no funcionó, usando método alternativo...")
-                    raise Exception("send_keys falló")
-                    
-            except:
-                # MÉTODO 2: JavaScript + eventos múltiples
-                print(f"   🔄 Usando JavaScript con eventos...")
-                
-                # Limpiar campo
-                self.driver.execute_script("arguments[0].value = '';", campo_descripcion)
-                time.sleep(0.2)
-                
-                # Establecer valor
-                self.driver.execute_script(
-                    "arguments[0].value = arguments[1];",
-                    campo_descripcion,
-                    descripcion
-                )
-                
-                # Disparar TODOS los eventos necesarios
-                self.driver.execute_script("""
-                    var element = arguments[0];
-                    
-                    // Focus
-                    element.focus();
-                    
-                    // Input event
-                    var inputEvent = new Event('input', { bubbles: true, cancelable: true });
-                    element.dispatchEvent(inputEvent);
-                    
-                    // Change event
-                    var changeEvent = new Event('change', { bubbles: true, cancelable: true });
-                    element.dispatchEvent(changeEvent);
-                    
-                    // Blur
-                    element.blur();
-                    
-                    // Focus de nuevo
-                    element.focus();
-                """, campo_descripcion)
-                
-                time.sleep(0.5)
-                
-                # Verificar
-                valor_final = campo_descripcion.get_attribute('value')
-                if valor_final and len(valor_final) > 0:
-                    print(f"✅ Descripción ingresada ({len(valor_final)} caracteres)")
-                    return True
-                else:
-                    print(f"❌ Descripción NO se guardó (0 caracteres)")
-                    return False
-            
-        except Exception as e:
-            print(f"❌ Error en descripción: {e}")
-        return False
-    
-    def llenar_etiquetas(self, etiquetas):
-        """Llena el campo de etiquetas de producto"""
-        if not etiquetas or etiquetas.strip() == "":
-            print("⏭️  Sin etiquetas, omitiendo...")
-            return True
-            
-        print(f"🏷️  Intentando llenar etiquetas: {etiquetas}")
-        try:
-            time.sleep(0.5)
-            
-            campo_etiquetas = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Etiquetas de producto')]/ancestor::div[contains(@class, 'x78zum5')]//input[@dir='ltr']")
-            
-            self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", campo_etiquetas)
-            time.sleep(0.5)
-            campo_etiquetas.click()
-            time.sleep(0.3)
-            
-            lista_etiquetas = [e.strip() for e in etiquetas.split(',') if e.strip()]
-            
-            for etiqueta in lista_etiquetas:
-                campo_etiquetas.send_keys(etiqueta)
-                time.sleep(0.3)
-                campo_etiquetas.send_keys(Keys.RETURN)
-                time.sleep(0.3)
-            
-            print(f"✅ {len(lista_etiquetas)} etiqueta(s) agregada(s)")
-            return True
-                    
-        except Exception as e:
-            print(f"⚠️  No se pudieron agregar etiquetas: {e}")
-        return False
-    
-    def llenar_sku(self, sku):
-        """Llena el campo SKU"""
-        if not sku or sku.strip() == "":
-            print("⏭️  Sin SKU, omitiendo...")
-            return True
-            
-        print(f"🔢 SKU: {sku}")
-        try:
-            campo_sku = self.driver.find_element(By.XPATH, "//span[contains(text(), 'SKU')]/ancestor::div[contains(@class, 'x78zum5')]//input[@dir='ltr']")
-            
-            campo_sku.click()
-            time.sleep(0.3)
-            campo_sku.clear()
-            campo_sku.send_keys(sku)
-            time.sleep(0.3)
-            print("✅ SKU ingresado")
-            return True
-                    
-        except Exception as e:
-            print(f"⚠️  No se pudo agregar SKU: {e}")
-        return False
-    
-    def configurar_disponibilidad(self, disponibilidad, encuentro_publico):
-        """Configura disponibilidad y encuentro en lugar público"""
-        try:
-            if encuentro_publico.lower() == "si":
-                print("✅ Marcando encuentro en lugar público")
-                try:
-                    checkbox = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Encuentro en un lugar público')]/..//input[@type='checkbox']")
-                    if not checkbox.is_selected():
-                        checkbox.click()
-                        time.sleep(0.3)
-                except:
-                    try:
-                        contenedor = self.driver.find_element(By.XPATH, "//span[contains(text(), 'Encuentro en un lugar público')]/ancestor::div[@role='button']")
-                        contenedor.click()
-                        time.sleep(0.3)
-                    except:
-                        print("⚠️  No se pudo marcar encuentro público")
-            
-            return True
-        except Exception as e:
-            print(f"❌ Error configurando preferencias: {e}")
-        return False
-    
-    def publicar_articulo(self):
-        """Hace clic en el botón Siguiente/Publicar"""
-        print("🚀 Publicando artículo...")
-        
-        # Cerrar overlays antes de publicar
-        self.cerrar_overlays()
-        
-        try:
-            boton_siguiente = self.driver.find_element(By.XPATH, "//span[text()='Siguiente']")
-            
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", boton_siguiente)
-            time.sleep(0.5)
-            
-            # Intentar click normal
-            try:
-                boton_siguiente.click()
-            except:
-                # Si falla, usar JavaScript
-                self.driver.execute_script("arguments[0].click();", boton_siguiente)
-            
-            time.sleep(1.5)
-            
-            print("✅ Clic en 'Siguiente' exitoso")
-            
-            time.sleep(1)
-            
-            try:
-                boton_publicar = self.driver.find_element(By.XPATH, "//span[text()='Publicar']")
-                if boton_publicar:
-                    print("📌 Encontrado botón 'Publicar', haciendo clic...")
-                    
-                    try:
-                        boton_publicar.click()
-                    except:
-                        self.driver.execute_script("arguments[0].click();", boton_publicar)
-                    
-                    time.sleep(1)
-            except:
-                pass
-            
-            print("✅ Artículo publicado exitosamente")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error al publicar: {e}")
-            
-            try:
-                self.driver.save_screenshot("error_publicacion.png")
-                print("📸 Screenshot guardado en error_publicacion.png")
-            except:
-                pass
-                
-        return False
-    
+
     def publicar_producto_completo(self, datos, imagenes):
-        """Publica un producto completo en Marketplace"""
-        print("\n" + "="*50)
+        """Publica un producto completo en Marketplace. True solo si Facebook confirmó la publicación"""
+        print("\n" + "=" * 50)
         print("🎯 INICIANDO PUBLICACIÓN")
-        print("="*50 + "\n")
-        
+        print("=" * 50 + "\n")
+
         if not self.esperar_login_facebook():
             print("❌ No se pudo verificar la sesión de Facebook")
             return False
-        
-        self.ir_a_marketplace()
-        time.sleep(2)  # Espera aumentada
-        
-        # Cerrar overlays DESPUÉS de que cargue la página
-        self.cerrar_overlays()
-        time.sleep(1)
-        
-        if not self.subir_imagenes(imagenes):
-            print("❌ Fallo crítico: No se pudieron subir imágenes")
+
+        if not self.ir_a_marketplace():
             return False
-        
-        time.sleep(1)
-        self.cerrar_overlays()  # Cerrar de nuevo después de subir imágenes
-        
+
+        if not self.subir_imagenes(imagenes):
+            return False
+
+        # Obligatorios
         self.llenar_titulo(datos.get('titulo', ''))
-        time.sleep(0.5)
-        
         self.llenar_precio(datos.get('precio', '0'))
-        time.sleep(0.5)
-        
-        # Cerrar overlays ANTES de categoría
-        self.cerrar_overlays()
-        self.seleccionar_categoria(datos.get('categoria', 'Electrónica e informática'))
-        time.sleep(0.5)
-        
-        # Cerrar overlays ANTES de estado
-        self.cerrar_overlays()
-        self.seleccionar_estado(datos.get('estado', 'Nuevo'))
-        time.sleep(0.5)
-        
-        ubicacion = datos.get('ubicacion', 'Guayaquil')
-        self.configurar_ubicacion(ubicacion)
-        time.sleep(0.5)
-        
-        # Cerrar overlays ANTES de descripción
-        self.cerrar_overlays()
+        self.seleccionar_categoria(datos.get('categoria', ''))
+        self.seleccionar_estado(datos.get('estado', ''))
+
+        # Más detalles (opcionales)
         self.llenar_descripcion(datos.get('descripcion', ''))
-        time.sleep(0.5)
-        
         self.llenar_etiquetas(datos.get('etiquetas', ''))
         self.llenar_sku(datos.get('sku', ''))
-        
-        self.configurar_disponibilidad(
-            datos.get('disponibilidad', 'Publicar como disponible'),
-            datos.get('encuentro_publico', 'Si')
-        )
-        
-        print("\n⏳ Esperando 1 segundo antes de publicar...")
-        time.sleep(1)
-        
-        # Cerrar overlays ANTES de publicar
-        self.cerrar_overlays()
+        self.configurar_ubicacion(datos.get('ubicacion') or self.config.get('ubicacion', ''))
+        self.configurar_disponibilidad(datos.get('disponibilidad', ''), datos.get('encuentro_publico', 'Si'))
+
         exito = self.publicar_articulo()
-        
         if exito:
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("✅ PUBLICACIÓN COMPLETADA")
-            print("="*50 + "\n")
-        
+            print("=" * 50 + "\n")
+            time.sleep(self.config.get('espera_despues_publicar', 5))
         return exito
-    
+
     def cerrar_navegador(self):
         """Cierra el navegador"""
         if self.driver:
-            print("🔒 Cerrando navegador...")
-            self.driver.quit()
-            print("✅ Navegador cerrado")
+            print("\n🔒 Cerrando navegador...")
+            try:
+                self.driver.quit()
+                print("✅ Navegador cerrado")
+            except Exception:
+                pass
+            self.driver = None

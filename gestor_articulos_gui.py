@@ -1,37 +1,55 @@
 import os
+import sys
 import shutil
-import re
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from compartido.gestor_archivos import (
+    leer_config_global, leer_datos_articulo, guardar_datos_articulo, numeros_articulos,
+    articulo_listo_para_publicar, crear_carpeta_articulo, _carpeta_productos,
+    ESTADOS_ARTICULO, CATEGORIAS_ARTICULO, EXTENSIONES_IMAGEN
+)
 
 
 class GestorArticulosGUI:
     """Interfaz gráfica para gestionar artículos de Marketplace"""
 
     def __init__(self):
-        self.carpeta_base = "ArticulosMarketplace"
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('AutomaPro.GestorArticulos')
+        except Exception:
+            pass
+
+        # Ruta siempre relativa al ejecutable, no al directorio de trabajo
+        self.carpeta_base = _carpeta_productos()
+        self.ubicacion_defecto = leer_config_global()['ubicacion']
 
         self.root = tk.Tk()
-        self.root.title("📦 Gestor de Artículos - Marketplace")
-        self.root.geometry("900x700")
+        self.root.withdraw()
+
+        self.root.title("🛍️ Gestor de Productos - Marketplace")
+        self.root.minsize(900, 700)
         self.root.resizable(True, True)
         self.root.configure(bg="#f0f0f0")
-        
-        # Ocultar ventana mientras se configura
-        self.root.withdraw()
-        
-        # Centrar ventana correctamente
-        self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
+
+        try:
+            base_ico = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+            ico = os.path.join(base_ico, 'iconos', 'edit.ico')
+            self.root.iconbitmap(ico)
+            # default= hace que las subventanas y los diálogos hereden el ícono en vez de la pluma de Tkinter
+            self.root.iconbitmap(default=ico)
+        except Exception:
+            pass
+
+        width = 900
+        height = 700
         x = (self.root.winfo_screenwidth() // 2) - (width // 2)
         y = (self.root.winfo_screenheight() // 2) - (height // 2)
         self.root.geometry(f'{width}x{height}+{x}+{y}')
-        
-        # Mostrar ventana ya centrada
         self.root.deiconify()
 
         self.articulo_actual = None
+        self.numeros_lista = []
 
         self._construir_ui()
         self._cargar_articulos()
@@ -43,7 +61,7 @@ class GestorArticulosGUI:
         header.pack(fill='x')
         tk.Label(
             header,
-            text="📦 Gestor de Artículos - Marketplace",
+            text="🛍️ Gestor de Productos - Marketplace",
             font=("Segoe UI", 14, "bold"),
             bg="#198754",
             fg="white"
@@ -216,11 +234,12 @@ class GestorArticulosGUI:
         ).pack(anchor='w', padx=15, pady=(8, 2))
         
         self.vars['categoria'] = tk.StringVar()
-        tk.Entry(
+        ttk.Combobox(
             frame_form,
             textvariable=self.vars['categoria'],
+            values=CATEGORIAS_ARTICULO,
             font=("Segoe UI", 10),
-            width=50
+            width=48
         ).pack(anchor='w', padx=15)
 
         # Estado
@@ -231,15 +250,15 @@ class GestorArticulosGUI:
             bg="#f0f0f0"
         ).pack(anchor='w', padx=15, pady=(8, 2))
         
-        self.vars['estado'] = tk.StringVar()
-        frame_estado = tk.Frame(frame_form, bg="#f0f0f0")
-        frame_estado.pack(anchor='w', padx=15)
-        for opcion in ['Nuevo', 'Usado']:
-            tk.Radiobutton(
-                frame_estado, text=opcion,
-                variable=self.vars['estado'], value=opcion,
-                bg="#f0f0f0", font=("Segoe UI", 10)
-            ).pack(side='left', padx=(0, 10))
+        self.vars['estado'] = tk.StringVar(value=ESTADOS_ARTICULO[0])
+        ttk.Combobox(
+            frame_form,
+            textvariable=self.vars['estado'],
+            values=ESTADOS_ARTICULO,
+            font=("Segoe UI", 10),
+            width=48,
+            state='readonly'
+        ).pack(anchor='w', padx=15)
 
         # Ubicación (Combobox con ciudades de Ecuador)
         tk.Label(
@@ -255,6 +274,8 @@ class GestorArticulosGUI:
             "Manta", "Portoviejo", "Loja", "Ambato", "Esmeraldas",
             "Quevedo", "Riobamba", "Ibarra", "Milagro", "Latacunga"
         ]
+        if self.ubicacion_defecto not in ciudades_ecuador:
+            ciudades_ecuador.append(self.ubicacion_defecto)
         combo_ubicacion = ttk.Combobox(
             frame_form,
             textvariable=self.vars['ubicacion'],
@@ -264,7 +285,7 @@ class GestorArticulosGUI:
             state='readonly'
         )
         combo_ubicacion.pack(anchor='w', padx=15)
-        combo_ubicacion.set("Guayaquil")  # Por defecto
+        combo_ubicacion.set(self.ubicacion_defecto)  # Por defecto, la ciudad del Configurador
 
         # Encuentro público
         tk.Label(
@@ -350,7 +371,14 @@ class GestorArticulosGUI:
             text="Imágenes del artículo",
             font=("Segoe UI", 10, "bold"),
             bg="#f0f0f0"
-        ).pack(anchor='w', padx=15, pady=(8, 4))
+        ).pack(anchor='w', padx=15, pady=(8, 0))
+        tk.Label(
+            tab_img,
+            text="Hasta 10 imágenes; se suben en orden alfabético. Un producto sin imágenes no se publica.",
+            font=("Segoe UI", 8),
+            fg="gray",
+            bg="#f0f0f0"
+        ).pack(anchor='w', padx=15, pady=(0, 4))
 
         # Lista de imágenes
         frame_imgs = tk.Frame(tab_img, bg="#f0f0f0")
@@ -402,101 +430,69 @@ class GestorArticulosGUI:
         ).pack(anchor='e', pady=(8, 0))
 
     def _cargar_articulos(self):
-        """Carga la lista de artículos"""
+        """Carga la lista de artículos, marcando los que están listos para publicar"""
         self.lista.delete(0, tk.END)
+        os.makedirs(self.carpeta_base, exist_ok=True)
 
-        if not os.path.exists(self.carpeta_base):
-            os.makedirs(self.carpeta_base)
+        self.numeros_lista = numeros_articulos()
+        listos = 0
+        for numero in self.numeros_lista:
+            datos = leer_datos_articulo(numero, avisar=False) or {}
+            listo = articulo_listo_para_publicar(numero)
+            listos += 1 if listo else 0
+            titulo = datos.get('titulo', '')
+            texto = f"{'✅' if listo else '⚠️'} Articulo_{numero}" + (f" · {titulo[:22]}" if titulo else "")
+            self.lista.insert(tk.END, texto)
 
-        articulos = sorted([
-            d for d in os.listdir(self.carpeta_base)
-            if os.path.isdir(os.path.join(self.carpeta_base, d))
-            and d.startswith("Articulo_")
-        ])
+        self.lbl_contador.config(text=f"{len(self.numeros_lista)} artículos · {listos} listos para publicar")
 
-        for articulo in articulos:
-            self.lista.insert(tk.END, articulo)
+    def _nombre_seleccionado(self):
+        """Carpeta (Articulo_N) del elemento seleccionado en la lista, o None"""
+        seleccion = self.lista.curselection()
+        if not seleccion:
+            return None
+        return f"Articulo_{self.numeros_lista[seleccion[0]]}"
 
-        self.lbl_contador.config(text=f"{len(articulos)} artículos")
+    def _numero_actual(self):
+        return int(self.articulo_actual.split('_')[1])
+
+    def _seleccionar_en_lista(self, nombre):
+        for i, numero in enumerate(self.numeros_lista):
+            if f"Articulo_{numero}" == nombre:
+                self.lista.selection_clear(0, tk.END)
+                self.lista.selection_set(i)
+                self.lista.see(i)
+                break
 
     def _on_seleccionar(self, event):
         """Al seleccionar un artículo lo muestra en el editor"""
-        seleccion = self.lista.curselection()
-        if not seleccion:
+        nombre = self._nombre_seleccionado()
+        if not nombre:
             return
 
-        nombre = self.lista.get(seleccion[0])
         self.articulo_actual = nombre
         self.lbl_articulo.config(text=nombre, fg="#198754")
 
-        # Limpiar campos primero
+        # Limpiar campos y poner los valores por defecto
         for var in self.vars.values():
             var.set("")
+        self.vars['estado'].set(ESTADOS_ARTICULO[0])
+        self.vars['ubicacion'].set(self.ubicacion_defecto)
+        self.vars['encuentro_publico'].set("Si")
         self.texto_desc.delete('1.0', tk.END)
 
-        # Leer datos.txt
-        ruta_datos = os.path.join(self.carpeta_base, nombre, "datos.txt")
+        try:
+            datos = leer_datos_articulo(self._numero_actual(), avisar=False) or {}
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"Error al leer datos: {e}")
+            datos = {}
 
-        if os.path.exists(ruta_datos):
-            try:
-                with open(ruta_datos, 'r', encoding='utf-8') as f:
-                    contenido = f.read()
-                
-                # FORMATO NUEVO: Buscar descripción entre comillas con regex
-                patron_desc = r'descripcion="((?:[^"\\]|\\.)*)"'
-                match_desc = re.search(patron_desc, contenido, re.DOTALL)
-                
-                descripcion_encontrada = False
-                
-                if match_desc:
-                    # Formato nuevo encontrado
-                    descripcion = match_desc.group(1)
-                    descripcion = descripcion.replace('\\"', '"')
-                    self.texto_desc.insert('1.0', descripcion)
-                    descripcion_encontrada = True
-                
-                # Leer otros campos (línea por línea)
-                lineas = contenido.split('\n')
-                leyendo_descripcion_vieja = False
-                descripcion_vieja = []
-                
-                for linea in lineas:
-                    linea_original = linea.rstrip()
-                    linea_limpia = linea.strip()
-                    
-                    if '=' in linea_limpia:
-                        partes = linea_limpia.split('=', 1)
-                        if len(partes) == 2:
-                            clave = partes[0].strip().lower()
-                            valor = partes[1].strip()
-                            
-                            # Si es descripción sin comillas (formato viejo)
-                            if clave == 'descripcion' and not descripcion_encontrada:
-                                if valor and not valor.startswith('"'):
-                                    # Formato viejo
-                                    descripcion_vieja = [valor]
-                                    leyendo_descripcion_vieja = True
-                            elif clave in ['disponibilidad', 'encuentro_publico', 'marca']:
-                                # Terminar lectura de descripción vieja
-                                leyendo_descripcion_vieja = False
-                                if clave == 'encuentro_publico' and clave in self.vars:
-                                    self.vars[clave].set(valor)
-                            elif clave in self.vars:
-                                self.vars[clave].set(valor)
-                                leyendo_descripcion_vieja = False
-                    else:
-                        # Línea sin = 
-                        if leyendo_descripcion_vieja and linea_limpia:
-                            descripcion_vieja.append(linea_limpia)
-                
-                # Si había descripción vieja, ponerla
-                if not descripcion_encontrada and descripcion_vieja:
-                    self.texto_desc.insert('1.0', '\n'.join(descripcion_vieja))
-                    
-            except Exception as e:
-                messagebox.showerror("❌ Error", f"Error al leer datos: {e}")
+        for clave, var in self.vars.items():
+            if datos.get(clave):
+                var.set(datos[clave])
+        if datos.get('descripcion'):
+            self.texto_desc.insert('1.0', datos['descripcion'])
 
-        # Cargar imágenes
         self._cargar_imagenes()
 
     def _cargar_imagenes(self):
@@ -509,7 +505,7 @@ class GestorArticulosGUI:
         carpeta_imgs = os.path.join(self.carpeta_base, self.articulo_actual, "imagenes")
 
         if os.path.exists(carpeta_imgs):
-            imagenes = [f for f in os.listdir(carpeta_imgs) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))]
+            imagenes = [f for f in os.listdir(carpeta_imgs) if f.lower().endswith(EXTENSIONES_IMAGEN)]
             for img in sorted(imagenes):
                 self.lista_imagenes.insert(tk.END, img)
 
@@ -523,74 +519,44 @@ class GestorArticulosGUI:
         precio = self.vars['precio'].get().strip()
         if precio:
             try:
-                precio_float = float(precio)
-                if precio_float < 0:
+                if float(precio) < 0:
                     messagebox.showerror("❌ Error", "El precio no puede ser negativo")
                     return
             except ValueError:
                 messagebox.showerror("❌ Error", "El precio debe ser un número válido")
                 return
 
-        ruta_datos = os.path.join(self.carpeta_base, self.articulo_actual, "datos.txt")
-
         try:
-            descripcion = self.texto_desc.get('1.0', tk.END).strip()
-            # Escapar comillas en la descripción
-            descripcion = descripcion.replace('"', '\\"')
-            
-            with open(ruta_datos, 'w', encoding='utf-8') as f:
-                for key, var in self.vars.items():
-                    if key != 'encuentro_publico':  # Este va aparte
-                        f.write(f"{key}={var.get()}\n")
-                f.write(f'descripcion="{descripcion}"\n')
-                f.write("disponibilidad=Publicar como disponible\n")
-                f.write(f"encuentro_publico={self.vars['encuentro_publico'].get()}\n")
+            numero = self._numero_actual()
+            datos = leer_datos_articulo(numero, avisar=False) or {}
+            for clave, var in self.vars.items():
+                datos[clave] = var.get().strip()
+            datos['descripcion'] = self.texto_desc.get('1.0', tk.END).strip()
+            datos.setdefault('disponibilidad', 'Publicar como disponible')
+            guardar_datos_articulo(numero, datos)
 
-            messagebox.showinfo("✅ Éxito", f"Artículo guardado: {self.articulo_actual}")
+            nombre = self.articulo_actual
+            self._cargar_articulos()
+            self._seleccionar_en_lista(nombre)
+            messagebox.showinfo("✅ Éxito", f"Artículo guardado: {nombre}")
         except Exception as e:
             messagebox.showerror("❌ Error", f"Error al guardar: {e}")
 
     def _nuevo_articulo(self):
-        """Crea un nuevo artículo"""
-        # Calcular siguiente número
-        articulos_existentes = [
-            d for d in os.listdir(self.carpeta_base)
-            if os.path.isdir(os.path.join(self.carpeta_base, d))
-            and d.startswith("Articulo_")
-        ] if os.path.exists(self.carpeta_base) else []
-
-        siguiente_num = len(articulos_existentes) + 1
+        """Crea un nuevo artículo con el número siguiente al mayor existente"""
+        numeros = numeros_articulos()
+        siguiente_num = (numeros[-1] + 1) if numeros else 1
         nombre = f"Articulo_{siguiente_num}"
 
-        carpeta_articulo = os.path.join(self.carpeta_base, nombre)
-        carpeta_imagenes = os.path.join(carpeta_articulo, "imagenes")
-
         try:
-            os.makedirs(carpeta_imagenes, exist_ok=True)
-
-            # Crear datos.txt con formato nuevo (descripción entre comillas)
-            with open(os.path.join(carpeta_articulo, "datos.txt"), 'w', encoding='utf-8') as f:
-                f.write("titulo=\n")
-                f.write("precio=\n")
-                f.write("categoria=\n")
-                f.write("estado=Nuevo\n")
-                f.write("ubicacion=Guayaquil\n")
-                f.write("etiquetas=\n")
-                f.write("sku=\n")
-                f.write('descripcion=""\n')
-                f.write("disponibilidad=Publicar como disponible\n")
-                f.write("encuentro_publico=Si\n")
+            crear_carpeta_articulo(siguiente_num)
+            datos = leer_datos_articulo(siguiente_num, avisar=False) or {}
+            datos.update({'titulo': '', 'precio': '', 'descripcion': ''})
+            guardar_datos_articulo(siguiente_num, datos)
 
             self._cargar_articulos()
-
-            # Seleccionar el nuevo
-            for i in range(self.lista.size()):
-                if self.lista.get(i) == nombre:
-                    self.lista.selection_clear(0, tk.END)
-                    self.lista.selection_set(i)
-                    self.lista.see(i)
-                    self._on_seleccionar(None)
-                    break
+            self._seleccionar_en_lista(nombre)
+            self._on_seleccionar(None)
 
             messagebox.showinfo("✅ Éxito", f"Artículo creado: {nombre}")
 
@@ -599,12 +565,10 @@ class GestorArticulosGUI:
 
     def _eliminar_articulo(self):
         """Elimina el artículo seleccionado"""
-        seleccion = self.lista.curselection()
-        if not seleccion:
+        nombre = self._nombre_seleccionado()
+        if not nombre:
             messagebox.showwarning("⚠️ Aviso", "Selecciona un artículo para eliminar")
             return
-
-        nombre = self.lista.get(seleccion[0])
 
         confirmar = messagebox.askyesno(
             "🗑️ Confirmar eliminación",
@@ -652,6 +616,7 @@ class GestorArticulosGUI:
                 shutil.copy2(archivo, destino)
 
             self._cargar_imagenes()
+            self._refrescar_lista_actual()
             messagebox.showinfo("✅ Éxito", f"{len(archivos)} imagen(es) agregada(s)")
         except Exception as e:
             messagebox.showerror("❌ Error", f"Error al agregar imágenes: {e}")
@@ -681,9 +646,17 @@ class GestorArticulosGUI:
         try:
             os.remove(ruta_img)
             self._cargar_imagenes()
+            self._refrescar_lista_actual()
             messagebox.showinfo("✅ Éxito", "Imagen eliminada")
         except Exception as e:
             messagebox.showerror("❌ Error", f"Error al eliminar: {e}")
+
+    def _refrescar_lista_actual(self):
+        """Actualiza la marca ✅/⚠️ de la lista sin perder la selección"""
+        nombre = self.articulo_actual
+        self._cargar_articulos()
+        if nombre:
+            self._seleccionar_en_lista(nombre)
 
     def ejecutar(self):
         self.root.mainloop()

@@ -1,4 +1,3 @@
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -8,40 +7,32 @@ from io import BytesIO
 import time
 import os
 
+from compartido.navegador import abrir_navegador
+from compartido.gestor_archivos import _carpeta_productos, guardar_datos_articulo
+
 
 class ExtractorWhatsApp:
     """Extrae productos del catálogo de WhatsApp Web"""
-    
-    def __init__(self):
+
+    def __init__(self, config=None):
         self.driver = None
         self.wait = None
-        self.carpeta_principal = "ArticulosMarketplace"
-    
+        self.config = config or {}
+        self.carpeta_principal = _carpeta_productos()
+
     def iniciar_navegador(self):
-        """Inicia Chrome y abre WhatsApp Web"""
-        print("🌐 Iniciando Chrome...")
-        
-        opciones = webdriver.ChromeOptions()
-        ruta_perfil = os.path.join(os.getcwd(), "perfiles", "whatsapp_extractor")
-        opciones.add_argument(f"--user-data-dir={ruta_perfil}")
-        opciones.add_argument("--disable-blink-features=AutomationControlled")
-        opciones.add_experimental_option("excludeSwitches", ["enable-automation"])
-        opciones.add_experimental_option('useAutomationExtension', False)
-        opciones.add_argument("--start-maximized")
-        
-        self.driver = webdriver.Chrome(options=opciones)
-        self.driver.maximize_window()
+        """Abre el navegador configurado y entra a WhatsApp Web"""
+        self.driver = abrir_navegador(self.config)
         self.driver.set_script_timeout(15)
         self.wait = WebDriverWait(self.driver, 60)
-        
-        print("✅ Navegador iniciado")
+
         print("📱 Abriendo WhatsApp Web...")
         self.driver.get("https://web.whatsapp.com")
         time.sleep(3)
-        
+
         print("\n⏳ Esperando a que escanees el código QR...")
         print("   (Si ya estás logueado, esto se saltará automáticamente)\n")
-    
+
     def esperar_whatsapp_cargado(self):
         """Espera a que WhatsApp Web esté completamente cargado"""
         try:
@@ -303,17 +294,18 @@ class ExtractorWhatsApp:
             print(f"⚠️  Error contando productos: {e}")
             return 0
     
-    def extraer_productos(self, cantidad_maxima=5, articulo_inicio=1, indice_inicio_catalogo=0):
-        """Extrae productos desde un índice específico del catálogo"""
+    def extraer_productos(self, numeros_destino, indice_inicio_catalogo=0):
+        """Extrae productos desde un índice del catálogo y los guarda en las carpetas Articulo_N indicadas"""
+        cantidad_maxima = len(numeros_destino)
         print(f"\n🎯 Iniciando extracción de hasta {cantidad_maxima} productos...")
-        print(f"   Guardando en: Articulo_{articulo_inicio} hasta Articulo_{articulo_inicio + cantidad_maxima - 1}")
+        print(f"   Guardando en: {', '.join(f'Articulo_{n}' for n in numeros_destino)}")
         print(f"   Desde producto {indice_inicio_catalogo + 1} del catálogo de WhatsApp\n")
         
         productos_extraidos = []
         indice_real = indice_inicio_catalogo
         
         for i in range(cantidad_maxima):
-            numero_articulo = articulo_inicio + i
+            numero_articulo = numeros_destino[i]
             
             print(f"\n{'='*60}")
             print(f"📦 PRODUCTO {i + 1}/{cantidad_maxima} → ARTICULO_{numero_articulo}")
@@ -725,28 +717,20 @@ class ExtractorWhatsApp:
                 print(f"💾 GUARDANDO DATOS EN ARTICULO_{numero_articulo}")
                 print(f"{'─'*60}")
                 
-                carpeta_articulo = os.path.join(self.carpeta_principal, f"Articulo_{numero_articulo}")
-                archivo_datos = os.path.join(carpeta_articulo, "datos.txt")
-                os.makedirs(carpeta_articulo, exist_ok=True)
-                
-                # Escapar comillas en la descripción
-                descripcion_escapada = producto['descripcion'].replace('"', '\\"')
-                
-                plantilla = f"""titulo={producto['titulo']}
-precio={producto['precio']}
-marca=
-categoria=Electrónica e informática
-estado=Nuevo
-ubicacion=Guayaquil
-descripcion="{descripcion_escapada}"
-disponibilidad=Publicar como disponible
-encuentro_publico=Si
-etiquetas=
-sku="""
-                
-                with open(archivo_datos, 'w', encoding='utf-8') as f:
-                    f.write(plantilla)
-                
+                guardar_datos_articulo(numero_articulo, {
+                    'titulo': producto['titulo'],
+                    'precio': producto['precio'],
+                    'marca': '',
+                    'categoria': 'Electrónica e informática',
+                    'estado': 'Nuevo',
+                    'ubicacion': self.config.get('ubicacion', 'Guayaquil'),
+                    'descripcion': producto['descripcion'],
+                    'disponibilidad': 'Publicar como disponible',
+                    'encuentro_publico': 'Si',
+                    'etiquetas': '',
+                    'sku': '',
+                })
+
                 print(f"   ✅ Archivo datos.txt guardado")
                 
                 print(f"\n{'='*60}")
@@ -819,7 +803,7 @@ sku="""
             print(f"         ⚠️  Error guardando imagen: {e}")
             return False
     
-    def ejecutar(self, nombre_contacto, cantidad_productos=5, articulo_inicio=1, indice_inicio_catalogo=0):
+    def ejecutar(self, nombre_contacto, numeros_destino, indice_inicio_catalogo=0):
         """Ejecuta el proceso completo de extracción"""
         print("\n" + "="*60)
         print("🚀 EXTRACTOR DE WHATSAPP")
@@ -841,7 +825,7 @@ sku="""
             
             self.contar_productos_catalogo()
             
-            productos = self.extraer_productos(cantidad_productos, articulo_inicio, indice_inicio_catalogo)
+            productos = self.extraer_productos(numeros_destino, indice_inicio_catalogo)
             
             print("\n" + "="*60)
             print(f"✅ EXTRACCIÓN COMPLETADA - {len(productos)} productos")
@@ -859,4 +843,8 @@ sku="""
             print("\n⏳ Cerrando navegador en 5 segundos...")
             time.sleep(5)
             if self.driver:
-                self.driver.quit()
+                try:
+                    self.driver.quit()
+                except Exception:
+                    pass
+                self.driver = None

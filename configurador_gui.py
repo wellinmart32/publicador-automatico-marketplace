@@ -111,6 +111,7 @@ class ConfiguradorGUI:
                 self._poner('ATENCION', 'max_conversaciones_por_ejecucion', self._numero_valido(self.var_max_conversaciones, 1, 50, 10))
 
             self._poner('NAVEGADOR', 'usar_perfil_existente', self.var_usar_perfil.get())
+            self._poner('NAVEGADOR', 'perfil_compartido', self.var_perfil_compartido.get())
             self._poner('NAVEGADOR', 'maximizar_ventana', self.var_maximizar.get())
 
             self._poner('LIMITES', 'tiempo_minimo_entre_publicaciones_segundos', self._numero_valido(self.var_tiempo_minimo, 30, 600, 120))
@@ -423,6 +424,12 @@ class ConfiguradorGUI:
         self._ayuda(tab_adv, "Sí = permite saltarse el tiempo mínimo en ejecución manual")
         self.var_forzar_manual = tk.StringVar(value=self._get('LIMITES', 'permitir_forzar_publicacion_manual', 'si'))
         self._radio_si_no(tab_adv, self.var_forzar_manual)
+
+        self._seccion(tab_adv, "🔗 Compartir la sesión del navegador con las otras apps AutomaPro")
+        self._ayuda(tab_adv, "Sí = Facebook y WhatsApp quedan abiertos para todas las apps AutomaPro "
+                             "(inicias sesión y escaneas el QR una sola vez). No = esta app usa su propia sesión")
+        self.var_perfil_compartido = tk.StringVar(value=self._get('NAVEGADOR', 'perfil_compartido', 'si'))
+        self._radio_si_no(tab_adv, self.var_perfil_compartido)
 
         # Navegar a pestaña inicial si viene del panel
         if self.pestana_inicial == 'extractor':

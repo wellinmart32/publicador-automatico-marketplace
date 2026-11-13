@@ -75,6 +75,7 @@ def leer_config_global():
 
         # [NAVEGADOR]
         'usar_perfil_existente': si_no('NAVEGADOR', 'usar_perfil_existente', 'si'),
+        'perfil_compartido': si_no('NAVEGADOR', 'perfil_compartido', 'si'),
         'carpeta_perfil_custom': texto('NAVEGADOR', 'carpeta_perfil_custom', 'perfiles/facebook_marketplace'),
         'desactivar_notificaciones': si_no('NAVEGADOR', 'desactivar_notificaciones', 'si'),
         'maximizar_ventana': si_no('NAVEGADOR', 'maximizar_ventana', 'si'),
@@ -153,6 +154,11 @@ CLAVES_DATOS_ARTICULO = ['titulo', 'precio', 'marca', 'categoria', 'estado', 'ub
 
 EXTENSIONES_IMAGEN = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
 
+ESTADOS_ARTICULO = ['Nuevo', 'Usado - Como nuevo', 'Usado - En buen estado', 'Usado - Aceptable']
+
+CATEGORIAS_ARTICULO = ['Electrónica e informática', 'Vehículos', 'Ropa y accesorios', 'Hogar y jardín',
+                       'Artículos para bebés y niños']
+
 
 def leer_datos_articulo(numero_articulo, avisar=True):
     """Lee datos.txt del artículo. La descripción puede tener varias líneas."""
@@ -176,7 +182,13 @@ def leer_datos_articulo(numero_articulo, avisar=True):
             clave = clave.strip()
             valor = valor.strip()
 
-            if clave == 'descripcion':
+            if clave == 'descripcion' and valor.startswith('"'):
+                # Formato entre comillas (gestor anterior): puede ocupar varias líneas
+                texto = '\n'.join([linea.split('=', 1)[1].strip()] + [l.rstrip() for l in lineas[i + 1:]])
+                fin = _fin_comillas(texto)
+                datos[clave] = texto[1:fin].replace('\\"', '"').strip()
+                i += texto[:fin].count('\n')
+            elif clave == 'descripcion':
                 # Leer todas las líneas hasta la siguiente clave conocida
                 descripcion_completa = [valor] if valor else []
                 i += 1
@@ -196,6 +208,34 @@ def leer_datos_articulo(numero_articulo, avisar=True):
         i += 1
 
     return datos
+
+
+def _fin_comillas(texto):
+    """Posición de la comilla que cierra el texto que empieza con comilla (ignora las escapadas con \\)"""
+    j = 1
+    while j < len(texto):
+        if texto[j] == '\\':
+            j += 2
+            continue
+        if texto[j] == '"':
+            return j
+        j += 1
+    return len(texto)
+
+
+def guardar_datos_articulo(numero_articulo, datos):
+    """
+    Guarda datos.txt del artículo. La descripción va al final, entre comillas y puede tener varias líneas
+    (las comillas internas se guardan como \\"). Formato que entiende leer_datos_articulo().
+    """
+    carpeta = _carpeta_articulo(numero_articulo)
+    os.makedirs(os.path.join(carpeta, "imagenes"), exist_ok=True)
+    with open(os.path.join(carpeta, "datos.txt"), 'w', encoding='utf-8') as f:
+        for clave in CLAVES_DATOS_ARTICULO:
+            if clave != 'descripcion':
+                f.write(f"{clave}={datos.get(clave, '')}\n")
+        descripcion = datos.get('descripcion', '').strip().replace('"', '\\"')
+        f.write(f'descripcion="{descripcion}"\n')
 
 
 def obtener_imagenes_articulo(numero_articulo):
@@ -223,21 +263,29 @@ def articulo_listo_para_publicar(numero_articulo):
     return len(obtener_imagenes_articulo(numero_articulo)) > 0
 
 
-def contar_articulos():
-    """Cuántas carpetas Articulo_N existen"""
+def numeros_articulos():
+    """Números de las carpetas Articulo_N que existen, ordenados (puede haber huecos)"""
     carpeta_principal = _carpeta_productos()
     if not os.path.exists(carpeta_principal):
-        return 0
-    return len([
-        item for item in os.listdir(carpeta_principal)
-        if os.path.isdir(os.path.join(carpeta_principal, item)) and item.startswith("Articulo_")
-    ])
+        return []
+    numeros = []
+    for item in os.listdir(carpeta_principal):
+        if item.startswith("Articulo_") and os.path.isdir(os.path.join(carpeta_principal, item)):
+            sufijo = item[len("Articulo_"):]
+            if sufijo.isdigit():
+                numeros.append(int(sufijo))
+    return sorted(numeros)
+
+
+def contar_articulos():
+    """Cuántas carpetas Articulo_N existen"""
+    return len(numeros_articulos())
 
 
 def listar_articulos_con_titulo():
     """Retorna [(numero, titulo, listo)] de todos los artículos, ordenados por número"""
     resultado = []
-    for numero in range(1, contar_articulos() + 1):
+    for numero in numeros_articulos():
         datos = leer_datos_articulo(numero, avisar=False) or {}
         resultado.append((numero, datos.get('titulo', ''), articulo_listo_para_publicar(numero)))
     return resultado
@@ -279,19 +327,20 @@ def obtener_articulos_a_publicar(config, cantidad=None):
     Returns:
         list[int]: números de artículo
     """
-    total = contar_articulos()
+    numeros = numeros_articulos()
+    total = len(numeros)
     if total == 0:
         print("❌ No hay artículos en la carpeta de productos")
         return []
 
     cantidad = min(cantidad or config['cantidad_por_ejecucion'], total)
     siguiente = leer_numero_config()
-    if siguiente < 1 or siguiente > total:
-        siguiente = 1
+    # Empezar en el primer artículo existente desde el número guardado (o volver al inicio)
+    inicio = next((k for k, n in enumerate(numeros) if n >= siguiente), 0)
 
     resultado = []
     for paso in range(total):
-        numero = (siguiente - 1 + paso) % total + 1
+        numero = numeros[(inicio + paso) % total]
         if articulo_listo_para_publicar(numero):
             resultado.append(numero)
             if len(resultado) == cantidad:
@@ -310,10 +359,11 @@ def obtener_articulos_a_publicar(config, cantidad=None):
 
 def avanzar_rotacion(numero_publicado):
     """Deja la rotación apuntando al artículo siguiente al publicado"""
-    total = contar_articulos()
-    if total == 0:
+    numeros = numeros_articulos()
+    if not numeros:
         return
-    guardar_numero_config(numero_publicado % total + 1)
+    siguientes = [n for n in numeros if n > numero_publicado]
+    guardar_numero_config(siguientes[0] if siguientes else numeros[0])
 
 
 def crear_estructura_carpetas():
