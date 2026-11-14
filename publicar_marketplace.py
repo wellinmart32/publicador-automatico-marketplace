@@ -447,14 +447,12 @@ def _avisar_actualizacion(id_de_tarea):
 
 
 def _esperar_cierre(sin_pausa):
-    """En ejecuciones manuales deja la consola abierta para leer el resultado; en tareas se cierra sola"""
+    """Cierra la consola sola (en tareas tras 2 s; en ejecuciones manuales tras 5 s para leer el resultado)"""
     if sin_pausa:
         time.sleep(2)
         return
-    try:
-        input("\nPresiona Enter para cerrar...")
-    except (EOFError, KeyboardInterrupt):
-        pass
+    print("\nLa ventana se cerrará en 5 segundos...")
+    time.sleep(5)
 
 
 def main():

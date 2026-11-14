@@ -8,6 +8,9 @@
 
 # Ignorar registro de publicaciones (contiene historial)
 registro_publicaciones.json
+conversaciones_marketplace.json
+conversaciones_marketplace.json.tmp
+conversaciones_marketplace.json.corrupto
 
 # Ignorar configuración propia de cada tarea automática y su registro de ejecuciones
 tareas_programadas.json
