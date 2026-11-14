@@ -33,8 +33,12 @@ productos_por_extraccion = 5
 [ATENCION]
 contacto_vendedor_whatsapp =
 nombre_vendedor =
-max_insistencias = 2
-max_conversaciones_por_ejecucion = 10
+# Contacto al que se avisa si un interesado no da su celular (si queda vacío se avisa al vendedor)
+contacto_abandonos_whatsapp =
+max_insistencias = 3
+max_conversaciones_por_ejecucion = 20
+# Solo se atienden conversaciones cuyo último mensaje del interesado sea de los últimos X días
+dias_maximos_conversacion = 5
 
 [NAVEGADOR]
 usar_perfil_existente = si

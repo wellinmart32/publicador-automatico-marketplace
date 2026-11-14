@@ -70,8 +70,10 @@ def leer_config_global():
         # [ATENCION]
         'contacto_vendedor_whatsapp': texto('ATENCION', 'contacto_vendedor_whatsapp', ''),
         'nombre_vendedor': texto('ATENCION', 'nombre_vendedor', ''),
-        'max_insistencias': numero('ATENCION', 'max_insistencias', 2, minimo=0, maximo=5),
-        'max_conversaciones_por_ejecucion': numero('ATENCION', 'max_conversaciones_por_ejecucion', 10, minimo=1),
+        'contacto_abandonos_whatsapp': texto('ATENCION', 'contacto_abandonos_whatsapp', ''),
+        'max_insistencias': numero('ATENCION', 'max_insistencias', 3, minimo=0, maximo=5),
+        'max_conversaciones_por_ejecucion': numero('ATENCION', 'max_conversaciones_por_ejecucion', 20, minimo=1, maximo=50),
+        'dias_maximos_conversacion': numero('ATENCION', 'dias_maximos_conversacion', 5, minimo=1, maximo=60),
 
         # [NAVEGADOR]
         'usar_perfil_existente': si_no('NAVEGADOR', 'usar_perfil_existente', 'si'),
@@ -772,9 +774,38 @@ PLANTILLAS_ATENCION = [
     ("INSISTIR_CELULAR", "2. Insistir si no responde con un celular"),
     ("CONFIRMACION",     "3. Confirmar al interesado cuando envía su celular"),
     ("AVISO_VENDEDOR",   "4. Aviso al vendedor por WhatsApp"),
+    ("DESPEDIDA",        "5. Despedida si no envía su celular tras las insistencias"),
+    ("AVISO_ABANDONO",   "6. Aviso por WhatsApp de un interesado que no dio su celular"),
 ]
 
 VARIABLES_PLANTILLAS = "{nombre} = interesado · {producto} = título · {celular} · {vendedor}"
+
+
+PATRON_CELULAR_ECUADOR = None
+
+
+def extraer_celular_ecuador(texto):
+    """
+    Busca un celular de Ecuador dentro de un texto y lo devuelve normalizado como 09XXXXXXXX
+    (o None si no hay ninguno). Acepta 0991234567, 991234567, 099 123 4567, 099-123-4567,
+    +593 99 123 4567 y 593991234567. No toma números más largos (cédulas, teléfonos fijos de 9 dígitos que no empiezan en 9).
+    """
+    import re
+    global PATRON_CELULAR_ECUADOR
+    if PATRON_CELULAR_ECUADOR is None:
+        sep = r"[\s\-.()]*"
+        PATRON_CELULAR_ECUADOR = re.compile(
+            r"(?<![\d+])(?:(?:\+?593|0)" + sep + r")?9(?:" + sep + r"\d){8}(?!\d)")
+    if not texto:
+        return None
+    for coincidencia in PATRON_CELULAR_ECUADOR.finditer(texto):
+        digitos = re.sub(r"\D", "", coincidencia.group(0))
+        if digitos.startswith("593"):
+            digitos = digitos[3:]
+        digitos = digitos.lstrip("0")
+        if len(digitos) == 9 and digitos.startswith("9"):
+            return "0" + digitos
+    return None
 
 
 def _ruta_plantillas_atencion(ejemplo=False):
@@ -791,6 +822,18 @@ def leer_plantillas_atencion():
     if not os.path.exists(ruta):
         ruta = _ruta_plantillas_atencion(ejemplo=True)
 
+    plantillas = _leer_archivo_plantillas(ruta)
+    # Plantillas que faltan en el archivo personal (ej: las agregadas en versiones nuevas): se toman del ejemplo
+    if any(not texto for texto in plantillas.values()):
+        ejemplo = _leer_archivo_plantillas(_ruta_plantillas_atencion(ejemplo=True))
+        for clave, texto in plantillas.items():
+            if not texto:
+                plantillas[clave] = ejemplo.get(clave, "")
+    return plantillas
+
+
+def _leer_archivo_plantillas(ruta):
+    """{clave: texto} de un archivo de plantillas (claves sin texto quedan vacías)"""
     plantillas = {clave: "" for clave, _ in PLANTILLAS_ATENCION}
     if not os.path.exists(ruta):
         return plantillas

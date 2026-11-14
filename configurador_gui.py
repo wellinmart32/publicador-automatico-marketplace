@@ -107,8 +107,10 @@ class ConfiguradorGUI:
 
                 self._poner('ATENCION', 'contacto_vendedor_whatsapp', self.var_contacto_vendedor.get().strip())
                 self._poner('ATENCION', 'nombre_vendedor', self.var_nombre_vendedor.get().strip())
-                self._poner('ATENCION', 'max_insistencias', self._numero_valido(self.var_max_insistencias, 0, 5, 2))
-                self._poner('ATENCION', 'max_conversaciones_por_ejecucion', self._numero_valido(self.var_max_conversaciones, 1, 50, 10))
+                self._poner('ATENCION', 'contacto_abandonos_whatsapp', self.var_contacto_abandonos.get().strip())
+                self._poner('ATENCION', 'max_insistencias', self._numero_valido(self.var_max_insistencias, 0, 5, 3))
+                self._poner('ATENCION', 'max_conversaciones_por_ejecucion', self._numero_valido(self.var_max_conversaciones, 1, 50, 20))
+                self._poner('ATENCION', 'dias_maximos_conversacion', self._numero_valido(self.var_dias_maximos, 1, 60, 5))
 
             self._poner('NAVEGADOR', 'usar_perfil_existente', self.var_usar_perfil.get())
             self._poner('NAVEGADOR', 'perfil_compartido', self.var_perfil_compartido.get())
@@ -290,20 +292,34 @@ class ConfiguradorGUI:
         tk.Entry(tab_ate, textvariable=self.var_nombre_vendedor, width=40, font=("Segoe UI", 10),
                  state=estado_full).pack(anchor='w', padx=20, pady=(0, 12))
 
+        self._seccion(tab_ate, "⚠️ Contacto de WhatsApp para avisar si alguien no da su celular")
+        self._ayuda(tab_ate, "Opcional. Si lo dejas vacío, ese aviso también va al vendedor")
+        self.var_contacto_abandonos = tk.StringVar(value=self._get('ATENCION', 'contacto_abandonos_whatsapp', ''))
+        tk.Entry(tab_ate, textvariable=self.var_contacto_abandonos, width=40, font=("Segoe UI", 10),
+                 state=estado_full).pack(anchor='w', padx=20, pady=(0, 12))
+
         fila_numeros = tk.Frame(tab_ate, bg="#f0f0f0")
         fila_numeros.pack(fill='x')
         col_izq = tk.Frame(fila_numeros, bg="#f0f0f0")
         col_izq.pack(side='left', anchor='n')
+        col_med = tk.Frame(fila_numeros, bg="#f0f0f0")
+        col_med.pack(side='left', anchor='n', padx=(25, 0))
         col_der = tk.Frame(fila_numeros, bg="#f0f0f0")
-        col_der.pack(side='left', anchor='n', padx=(30, 0))
+        col_der.pack(side='left', anchor='n', padx=(25, 0))
 
-        self._seccion(col_izq, "🔁 Veces que se insiste por el celular")
-        self.var_max_insistencias = tk.StringVar(value=self._get('ATENCION', 'max_insistencias', '2'))
+        self._seccion(col_izq, "🔁 Insistencias")
+        self.var_max_insistencias = tk.StringVar(value=self._get('ATENCION', 'max_insistencias', '3'))
         self._spinbox(col_izq, self.var_max_insistencias, 0, 5, estado_full)
 
-        self._seccion(col_der, "💬 Conversaciones por ejecución")
-        self.var_max_conversaciones = tk.StringVar(value=self._get('ATENCION', 'max_conversaciones_por_ejecucion', '10'))
-        self._spinbox(col_der, self.var_max_conversaciones, 1, 50, estado_full)
+        self._seccion(col_med, "💬 Por ejecución")
+        self.var_max_conversaciones = tk.StringVar(value=self._get('ATENCION', 'max_conversaciones_por_ejecucion', '20'))
+        self._spinbox(col_med, self.var_max_conversaciones, 1, 50, estado_full)
+
+        self._seccion(col_der, "📅 Antigüedad máx. (días)")
+        self.var_dias_maximos = tk.StringVar(value=self._get('ATENCION', 'dias_maximos_conversacion', '5'))
+        self._spinbox(col_der, self.var_dias_maximos, 1, 60, estado_full)
+        self._ayuda(tab_ate, "Insistencias: veces que se vuelve a pedir el celular · Por ejecución: conversaciones que se atienden "
+                             "en cada corrida · Antigüedad: se ignoran las conversaciones cuyo interesado no escribe hace más de esos días")
 
         self._seccion(tab_ate, "📝 Mensajes plantilla")
         tk.Button(tab_ate,
@@ -450,7 +466,7 @@ class ConfiguradorGUI:
                   bg="#198754", fg="white", width=14, command=self._guardar_config).pack(side='right', padx=5)
 
     def _abrir_editor_plantillas(self):
-        """Ventana para editar los 4 mensajes plantilla de la atención de interesados"""
+        """Ventana para editar los 6 mensajes plantilla de la atención de interesados"""
         ventana = tk.Toplevel(self.root)
         ventana.withdraw()
         ventana.title("📝 Mensajes plantilla")
@@ -474,7 +490,7 @@ class ConfiguradorGUI:
         for clave, titulo in PLANTILLAS_ATENCION:
             tk.Label(cuerpo, text=titulo, font=("Segoe UI", 9, "bold"), bg="#f0f0f0",
                      fg="#333").pack(anchor='w', pady=(6, 2))
-            caja = tk.Text(cuerpo, height=4, width=70, font=("Segoe UI", 9), wrap='word')
+            caja = tk.Text(cuerpo, height=4 if clave in ('AVISO_VENDEDOR', 'AVISO_ABANDONO') else 3, width=70, font=("Segoe UI", 9), wrap='word')
             caja.insert('1.0', plantillas.get(clave, ''))
             caja.pack(fill='x')
             cajas[clave] = caja
@@ -505,7 +521,7 @@ class ConfiguradorGUI:
 
         ventana.protocol("WM_DELETE_WINDOW", cerrar)
         ventana.update_idletasks()
-        ancho, alto = 620, 575
+        ancho, alto = 620, 675
         x = (ventana.winfo_screenwidth() // 2) - (ancho // 2)
         y = (ventana.winfo_screenheight() // 2) - (alto // 2)
         ventana.geometry(f'{ancho}x{alto}+{x}+{y}')

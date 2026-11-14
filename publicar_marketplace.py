@@ -221,9 +221,20 @@ def _extraer_catalogo(config):
     print(f"\n{V}{N}✅ Se extrajeron {len(productos)} producto(s). Revísalos en el Gestor de Productos antes de publicar.{X}")
 
 
-def _atender_interesados(config):
+def _atender_interesados(config, prueba=False):
+    """
+    Lee la bandeja de entrada de Marketplace y responde a los interesados (pide el celular, insiste, confirma y se despide).
+    Con prueba=True (py publicar_marketplace.py --modulo atender --prueba) no envía nada: abre 3 chats y muestra
+    el estado que reconstruye y el mensaje que enviaría.
+    """
     print(f"\n{N}{C}💬 ATENDER INTERESADOS{X}")
-    print(f"{A}🚧 Esta acción llegará en la próxima actualización.{X}")
+    from atendedores.atendedor_interesados import AtendedorInteresados
+
+    print(f"   Se atienden conversaciones con actividad de los últimos {config['dias_maximos_conversacion']} días "
+          f"(máx. {config['max_conversaciones_por_ejecucion']} por ejecución)")
+    AtendedorInteresados(config).ejecutar(modo_prueba=prueba)
+    if prueba:
+        print(f"\n{A}🧪 Prueba terminada: no se envió ningún mensaje.{X}")
 
 
 def _ejecutar_modulos(config, lista, id_de_tarea=None):
@@ -452,6 +463,7 @@ def main():
     parser.add_argument('--secuencia', action='store_true')
     parser.add_argument('--modulo', default=None)
     parser.add_argument('--tarea', default=None)
+    parser.add_argument('--prueba', action='store_true')
     args, _ = parser.parse_known_args()
 
     es_doble_clic = not args.secuencia and args.modulo is None and args.tarea is None
@@ -494,7 +506,7 @@ def main():
         elif args.modulo == 'extraer':
             _extraer_catalogo(config)
         elif args.modulo == 'atender':
-            _atender_interesados(config)
+            _atender_interesados(config, prueba=args.prueba)
         elif args.modulo:
             print(f"{A}⚠️  Acción desconocida: {args.modulo}. Usa publicar, extraer o atender.{X}")
         elif args.secuencia or es_doble_clic:

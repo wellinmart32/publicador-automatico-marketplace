@@ -1,0 +1,12 @@
+titulo=Producto de prueba
+precio=10
+marca=
+categoria=
+estado=Nuevo
+ubicacion=Guayaquil
+disponibilidad=Publicar como disponible
+encuentro_publico=Si
+etiquetas=
+sku=
+descripcion="Descripción de prueba con \"comillas\"
+y una segunda línea"

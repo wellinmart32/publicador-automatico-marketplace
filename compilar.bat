@@ -20,7 +20,7 @@ set FLAGS_CONSOLA=--onefile --noconfirm
 
 echo.
 echo [1/6] Compilando PublicadorMarketplace.exe...
-%PYINSTALLER% %FLAGS_CONSOLA% %DATOS_BASE% --add-data "publicadores;publicadores" --add-data "extractores;extractores" --icon=iconos/tienda.ico --name PublicadorMarketplace publicar_marketplace.py
+%PYINSTALLER% %FLAGS_CONSOLA% %DATOS_BASE% --add-data "publicadores;publicadores" --add-data "extractores;extractores" --add-data "atendedores;atendedores" --icon=iconos/tienda.ico --name PublicadorMarketplace publicar_marketplace.py
 echo.
 
 echo [2/6] Compilando PanelControl.exe...
