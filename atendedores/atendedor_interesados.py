@@ -293,6 +293,7 @@ def analizar_conversacion(mensajes, plantillas, max_insistencias):
     Si el cliente escribe después de una despedida, la conversación se reinicia como nueva.
     """
     estado, pedidos, celular = 'nuevo', 0, None
+    despedidas = 0           # despedidas que ya envié en esta conversación (cada una cierra un ciclo)
     celulares = []           # celulares distintos que mandó el cliente (desde el último reinicio)
     pendiente = False        # el último mensaje con texto es del cliente y aún no se le respondió
     reiniciada = False
@@ -310,6 +311,7 @@ def analizar_conversacion(mensajes, plantillas, max_insistencias):
                 estado = 'confirmado'
             elif tipo == 'DESPEDIDA':
                 estado = 'abandonado'
+                despedidas += 1
             pendiente = False
         else:
             if estado == 'abandonado':
@@ -325,7 +327,9 @@ def analizar_conversacion(mensajes, plantillas, max_insistencias):
             pendiente = True
 
     insistencias = max(pedidos - 1, 0)
-    resultado = {'estado': estado, 'accion': None, 'celular': celular, 'pedidos': pedidos,
+    # Ciclo = cuántas veces se cerró la conversación antes del caso actual (0 la primera vez, 1 tras un reinicio...)
+    ciclo = despedidas - 1 if estado == 'abandonado' else despedidas
+    resultado = {'estado': estado, 'accion': None, 'ciclo': ciclo, 'celular': celular, 'pedidos': pedidos,
                  'insistencias': insistencias, 'reiniciada': reiniciada, 'motivo': '', 'celulares': celulares}
 
     if estado == 'confirmado':
@@ -387,6 +391,25 @@ def texto_a_enviar(accion, chat, analisis, plantillas, config):
         producto=titulo_completo(chat['producto']),
         celular=analisis.get('celular') or '',
         vendedor=config.get('nombre_vendedor') or 'nuestro asesor')
+
+
+def texto_aviso(clave, chat, analisis, plantillas, config):
+    """Aviso por WhatsApp (AVISO_VENDEDOR / AVISO_ABANDONO): lleva el nombre completo del interesado tal como sale en Facebook"""
+    return rellenar_plantilla(
+        plantillas.get(clave, ''),
+        nombre=chat['nombre'],
+        producto=titulo_completo(chat['producto']),
+        celular=analisis.get('celular') or '',
+        vendedor=config.get('nombre_vendedor') or 'nuestro asesor')
+
+
+def texto_aviso_revisar(chat, analisis):
+    """Aviso fijo (sin plantilla) para una conversación en la que el cliente mandó varios números distintos"""
+    return ("⚠️ Revisar a mano en Marketplace\n"
+            f"Producto: {titulo_completo(chat['producto'])}\n"
+            f"Nombre: {chat['nombre']}\n"
+            f"El cliente mandó varios números: {', '.join(analisis.get('celulares', []))}\n"
+            "No se le confirmó ni se avisó al vendedor.")
 
 
 # ============================================================
@@ -526,6 +549,7 @@ class AtendedorInteresados:
         self.config = config or {}
         self.fb = PublicadorMarketplace(self.config)
         self.driver = None
+        self.seguimiento = None
 
     def iniciar_navegador(self):
         """Abre el navegador y comprueba la sesión de Facebook"""
@@ -711,15 +735,82 @@ class AtendedorInteresados:
                 if texto.strip():
                     enviado = self.enviar_mensaje(chat, texto)
                     print(f"   {'✅ Enviado' if enviado else '❌ No se pudo enviar'}")
+                    if enviado:
+                        self._registrar_aviso(chat, analisis, self._tipo_de_aviso(analisis['accion']), plantillas)
                 else:
                     print(f"   ⚠️  La plantilla {analisis['accion']} está vacía; configúrala en el Configurador")
             else:
                 print(f"   ⏸️  Sin acción: {analisis['motivo']}")
+                if analisis['estado'] == 'revisar':
+                    print("   ⚠️  Revísala a mano en Marketplace")
+                    self._registrar_aviso(chat, analisis, 'AVISO_REVISAR', plantillas)
 
             self.cerrar_chat(chat)
             resultados.append({'chat': chat, 'analisis': analisis, 'enviado': enviado})
 
         return resultados
+
+    # Qué configuración dice a quién va cada aviso
+    CONTACTO_DE_AVISO = {'AVISO_VENDEDOR': 'contacto_vendedor_whatsapp',
+                         'AVISO_ABANDONO': 'contacto_abandonos_whatsapp',
+                         'AVISO_REVISAR': 'contacto_abandonos_whatsapp'}
+
+    @staticmethod
+    def _tipo_de_aviso(accion):
+        return {'CONFIRMACION': 'AVISO_VENDEDOR', 'DESPEDIDA': 'AVISO_ABANDONO'}.get(accion)
+
+    def _destino_del_aviso(self, accion):
+        """(tipo de aviso, contacto de WhatsApp) que corresponde a una acción, o (None, None)"""
+        tipo = self._tipo_de_aviso(accion)
+        if not tipo:
+            return None, None
+        return tipo, self.config.get(self.CONTACTO_DE_AVISO[tipo], '')
+
+    def _registrar_aviso(self, chat, analisis, tipo, plantillas):
+        """Anota el aviso en el seguimiento (queda pendiente hasta que WhatsApp lo envíe)"""
+        if tipo == 'AVISO_REVISAR':
+            texto = texto_aviso_revisar(chat, analisis)
+        else:
+            texto = texto_aviso(tipo, chat, analisis, plantillas, self.config)
+        if self.seguimiento.registrar(chat, analisis['ciclo'], tipo, texto):
+            print(f"   📝 Aviso {tipo} anotado para enviarlo por WhatsApp")
+
+    def enviar_avisos(self):
+        """
+        Abre WhatsApp Web una sola vez y manda todos los avisos pendientes (los de esta ejecución y los que
+        fallaron en ejecuciones anteriores). Un aviso que se envía se marca como enviado y no se repite.
+        """
+        for clave, aviso in self.seguimiento.abandonados():
+            print(f"⚠️  El aviso {aviso['tipo']} de '{aviso['titulo']}' falló demasiadas veces y ya no se reintenta")
+
+        pendientes = self.seguimiento.pendientes()
+        if not pendientes:
+            return
+        print(f"\n📲 Enviando {len(pendientes)} aviso(s) por WhatsApp...")
+
+        from atendedores.notificador_whatsapp import NotificadorWhatsApp
+        notificador = NotificadorWhatsApp(self.driver, self.config)
+        try:
+            if not notificador.abrir():
+                print("❌ No se pudo abrir WhatsApp Web; los avisos quedan pendientes para la próxima ejecución")
+                return
+            for clave, aviso in pendientes:
+                etiqueta = f"{aviso['tipo']} · {aviso['titulo']}"
+                contacto = self.config.get(self.CONTACTO_DE_AVISO.get(aviso['tipo'], ''), '')
+                if not aviso['texto'].strip():
+                    print(f"   ⚠️  {etiqueta}: el texto del aviso está vacío; configura la plantilla en el Configurador")
+                    continue
+                if not contacto:
+                    print(f"   ⚠️  {etiqueta}: falta el contacto de WhatsApp en el Configurador (queda pendiente)")
+                    continue
+                if notificador.enviar(contacto, aviso['texto']):
+                    self.seguimiento.marcar_enviado(clave)
+                    print(f"   ✅ {etiqueta} → {contacto}")
+                else:
+                    self.seguimiento.marcar_fallo(clave)
+                    print(f"   ❌ {etiqueta} → {contacto} (se reintentará en la próxima ejecución)")
+        finally:
+            notificador.cerrar()
 
     # ------------------------------------------------------------
 
@@ -731,6 +822,8 @@ class AtendedorInteresados:
         """
         dias = self.config.get('dias_maximos_conversacion', 5)
         resultado = {'relevantes': [], 'descartadas': []}
+        from atendedores.seguimiento_interesados import SeguimientoInteresados
+        self.seguimiento = SeguimientoInteresados()
 
         try:
             if not self.iniciar_navegador():
@@ -764,6 +857,10 @@ class AtendedorInteresados:
 
             if modo_prueba:
                 self._probar_lectura(chats[:3], plantillas)
+                pendientes = self.seguimiento.pendientes()
+                print(f"\n📝 Avisos pendientes de enviar por WhatsApp (conversaciones_marketplace.json): {len(pendientes)}")
+                for _, aviso in pendientes:
+                    print(f"   • {aviso['tipo']} · {aviso['titulo']} (intentos: {aviso['intentos']})")
             else:
                 maximo = self.config.get('max_conversaciones_por_ejecucion', 20)
                 if len(relevantes) > maximo:
@@ -771,6 +868,8 @@ class AtendedorInteresados:
                 resultado['atendidos'] = self.atender(relevantes[:maximo], plantillas)
                 enviados = sum(1 for r in resultado['atendidos'] if r['enviado'])
                 print(f"\n📊 Mensajes enviados: {enviados} de {len(resultado['atendidos'])} conversación(es)")
+                self.enviar_avisos()
+                resultado['avisos'] = self.seguimiento.avisos
 
             return resultado
 
@@ -807,6 +906,16 @@ class AtendedorInteresados:
                 print(f"   ➡️  Enviaría ({analisis['accion']}):")
                 for linea in texto.split('\n'):
                     print(f"        | {linea}")
+                clave, contacto = self._destino_del_aviso(analisis['accion'])
+                if clave:
+                    print(f"   📲 Después avisaría por WhatsApp a '{contacto or '(sin configurar)'}' ({clave}):")
+                    for linea in texto_aviso(clave, chat, analisis, plantillas, self.config).split('\n'):
+                        print(f"        | {linea}")
             else:
                 print(f"   ⏸️  No enviaría nada: {analisis['motivo']}")
+                if analisis['estado'] == 'revisar':
+                    contacto = self.config.get('contacto_abandonos_whatsapp') or '(sin configurar)'
+                    print(f"   📲 Te avisaría por WhatsApp a '{contacto}' (AVISO_REVISAR):")
+                    for linea in texto_aviso_revisar(chat, analisis).split('\n'):
+                        print(f"        | {linea}")
             print(f"   Chat cerrado: {'sí' if self.cerrar_chat(chat) else 'NO'}")
