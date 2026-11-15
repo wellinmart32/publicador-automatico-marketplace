@@ -195,8 +195,25 @@ class ConfiguradorGUI:
             tk.Radiobutton(frame, text=opcion.capitalize(), variable=variable, value=opcion, bg="#f0f0f0", font=("Segoe UI", 10)).pack(side='left', padx=8)
 
     def _spinbox(self, parent, variable, desde, hasta, estado='normal'):
-        tk.Spinbox(parent, from_=desde, to=hasta, textvariable=variable, width=8, font=("Segoe UI", 10),
-                   state=estado).pack(anchor='w', padx=20, pady=(0, 12))
+        """Campo numérico: solo deja escribir dígitos y, al salir del campo, ajusta el valor al rango permitido"""
+        ultimo_valido = [str(variable.get()).strip() or str(desde)]
+
+        def solo_digitos(propuesto):
+            return propuesto == '' or (propuesto.isdigit() and len(propuesto) <= 4)
+
+        def ajustar(_evento=None):
+            try:
+                valor = max(desde, min(hasta, int(variable.get())))
+                ultimo_valido[0] = str(valor)
+            except (ValueError, tk.TclError):
+                pass            # vacío o inválido: vuelve al último valor correcto
+            variable.set(ultimo_valido[0])
+
+        spin = tk.Spinbox(parent, from_=desde, to=hasta, textvariable=variable, width=8, font=("Segoe UI", 10),
+                          state=estado, validate='key',
+                          validatecommand=(parent.register(solo_digitos), '%P'))
+        spin.bind('<FocusOut>', ajustar)
+        spin.pack(anchor='w', padx=20, pady=(0, 12))
 
     def _banner_full(self, parent):
         banner = tk.Frame(parent, bg="#fff3cd", pady=6)
