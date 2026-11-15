@@ -788,7 +788,7 @@ class GestorTareasGUI:
         config_tarea = obtener_config_tarea(id_de_tarea)
         if not config_tarea:
             return "Secuencia general"
-        cortos = {'extraer': 'Extraer', 'publicar': 'Publicar', 'atender': 'Atender'}
+        cortos = {'extraer': 'Extraer', 'publicar': 'Publicar', 'atender': 'Atender', 'sincronizar': 'Sincronizar'}
         partes = []
         for modulo in config_tarea.get('modulos', []):
             texto = cortos.get(modulo, modulo)

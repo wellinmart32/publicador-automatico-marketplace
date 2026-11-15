@@ -237,6 +237,19 @@ def _atender_interesados(config, prueba=False):
         print(f"\n{A}🧪 Prueba terminada: no se envió ningún mensaje.{X}")
 
 
+def _sincronizar_marketplace(config, prueba=False, solo_vincular=False):
+    """
+    Lee 'Tus publicaciones' de Facebook y refleja en el Gestor de Productos lo que ya tienes publicado.
+    Con prueba=True (py publicar_marketplace.py --modulo sincronizar --prueba) solo lee y muestra lo que haría.
+    """
+    print(f"\n{N}{C}🔄 SINCRONIZAR CON MARKETPLACE{X}")
+    from sincronizadores.sincronizador_marketplace import SincronizadorMarketplace
+
+    SincronizadorMarketplace(config).ejecutar(modo_prueba=prueba, solo_vincular=solo_vincular)
+    if prueba:
+        print(f"\n{A}🧪 Prueba terminada: no se creó ni se cambió ningún artículo.{X}")
+
+
 def _ejecutar_modulos(config, lista, id_de_tarea=None):
     """Ejecuta las acciones en orden. Con id_de_tarea valida cada una antes y nunca se queda esperando respuesta"""
     nombres = dict(MODULOS_DISPONIBLES)
@@ -251,6 +264,8 @@ def _ejecutar_modulos(config, lista, id_de_tarea=None):
             _extraer_catalogo(config)
         elif modulo == 'atender':
             _atender_interesados(config)
+        elif modulo == 'sincronizar':
+            _sincronizar_marketplace(config)
         else:
             print(f"{A}⚠️  Acción desconocida: {modulo}{X}")
             continue
@@ -462,6 +477,7 @@ def main():
     parser.add_argument('--modulo', default=None)
     parser.add_argument('--tarea', default=None)
     parser.add_argument('--prueba', action='store_true')
+    parser.add_argument('--solo-vincular', action='store_true')
     args, _ = parser.parse_known_args()
 
     es_doble_clic = not args.secuencia and args.modulo is None and args.tarea is None
@@ -505,8 +521,10 @@ def main():
             _extraer_catalogo(config)
         elif args.modulo == 'atender':
             _atender_interesados(config, prueba=args.prueba)
+        elif args.modulo == 'sincronizar':
+            _sincronizar_marketplace(config, prueba=args.prueba, solo_vincular=args.solo_vincular)
         elif args.modulo:
-            print(f"{A}⚠️  Acción desconocida: {args.modulo}. Usa publicar, extraer o atender.{X}")
+            print(f"{A}⚠️  Acción desconocida: {args.modulo}. Usa publicar, extraer, atender o sincronizar.{X}")
         elif args.secuencia or es_doble_clic:
             _ejecutar_secuencia_full(config)
     except KeyboardInterrupt:

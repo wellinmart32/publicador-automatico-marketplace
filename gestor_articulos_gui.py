@@ -8,6 +8,26 @@ from compartido.gestor_archivos import (
     articulo_listo_para_publicar, crear_carpeta_articulo, _carpeta_productos,
     ESTADOS_ARTICULO, CATEGORIAS_ARTICULO, EXTENSIONES_IMAGEN
 )
+import subprocess
+
+# Icono que se muestra en la lista según el estado del anuncio en Marketplace (última sincronización)
+COLORES_ESTADO_MARKETPLACE = {
+    'Disponible': '#198754',
+    'Pendiente': '#a07800',
+    'Vendido': '#dc3545',
+    'Rechazado (parece duplicado)': '#e8590c',
+    'Borrador': '#6c757d',
+    'Eliminado en Facebook': '#6c757d',
+}
+
+ICONOS_ESTADO_MARKETPLACE = {
+    'Disponible': '🟢',
+    'Pendiente': '🟡',
+    'Vendido': '🔴',
+    'Rechazado (parece duplicado)': '🚫',
+    'Borrador': '⚪',
+    'Eliminado en Facebook': '⚫',
+}
 
 
 class GestorArticulosGUI:
@@ -72,7 +92,7 @@ class GestorArticulosGUI:
         panel.pack(fill='both', expand=True, padx=10, pady=10)
 
         # ==================== PANEL IZQUIERDO ====================
-        panel_izq = tk.Frame(panel, bg="#f0f0f0", width=200)
+        panel_izq = tk.Frame(panel, bg="#f0f0f0", width=250)
         panel_izq.pack(side='left', fill='y', padx=(0, 5))
         panel_izq.pack_propagate(False)
 
@@ -112,6 +132,17 @@ class GestorArticulosGUI:
         scrollbar.config(command=self.lista.yview)
 
         self.lista.bind('<<ListboxSelect>>', self._on_seleccionar)
+
+        # Sincronizar con Marketplace
+        self.btn_sincronizar = tk.Button(
+            panel_izq,
+            text="🔄 Sincronizar con Marketplace",
+            font=("Segoe UI", 9, "bold"),
+            bg="#0d6efd",
+            fg="white",
+            command=self._sincronizar_marketplace
+        )
+        self.btn_sincronizar.pack(fill='x', pady=(5, 0))
 
         # Botones
         frame_btn_lista = tk.Frame(panel_izq, bg="#f0f0f0")
@@ -441,10 +472,60 @@ class GestorArticulosGUI:
             listo = articulo_listo_para_publicar(numero)
             listos += 1 if listo else 0
             titulo = datos.get('titulo', '')
-            texto = f"{'✅' if listo else '⚠️'} Articulo_{numero}" + (f" · {titulo[:22]}" if titulo else "")
+            estado_mk = datos.get('estado_marketplace', '')
+            icono_mk = ICONOS_ESTADO_MARKETPLACE.get(estado_mk, '▫️')
+            texto = f"{'✅' if listo else '⚠️'}{icono_mk} Articulo_{numero}" + (f" · {titulo[:20]}" if titulo else "")
             self.lista.insert(tk.END, texto)
+            color = COLORES_ESTADO_MARKETPLACE.get(estado_mk)
+            if color:
+                self.lista.itemconfig(tk.END, fg=color)
 
         self.lbl_contador.config(text=f"{len(self.numeros_lista)} artículos · {listos} listos para publicar")
+
+    def _sincronizar_marketplace(self):
+        """Abre la sincronización en su propia consola y recarga la lista cuando termina"""
+        if getattr(self, 'proceso_sincronizacion', None) and self.proceso_sincronizacion.poll() is None:
+            messagebox.showinfo("🔄 Sincronizando", "La sincronización ya está en marcha.")
+            return
+        eleccion = messagebox.askyesnocancel(
+            "🔄 Sincronizar con Marketplace",
+            "Se abrirá el navegador y se leerán tus anuncios de Facebook Marketplace.\n\n"
+            "• Los anuncios que ya tienes se vinculan con tus productos (no se cambia ningún dato).\n"
+            "• Los productos con anuncio activo dejan de publicarse de nuevo.\n\n"
+            "¿Quieres también traer a la app los anuncios que no tienes aquí?\n\n"
+            "SÍ = vincular e importar los que faltan\n"
+            "NO = solo vincular (no se importa nada)\n"
+            "CANCELAR = no sincronizar\n\n"
+            "No uses el navegador mientras trabaja."
+        )
+        if eleccion is None:
+            return
+        try:
+            if getattr(sys, 'frozen', False):
+                carpeta = os.path.dirname(sys.executable)
+                comando = [os.path.join(carpeta, "PublicadorMarketplace.exe"), "--modulo", "sincronizar"]
+            else:
+                carpeta = os.path.dirname(os.path.abspath(__file__))
+                comando = [sys.executable, os.path.join(carpeta, "publicar_marketplace.py"), "--modulo", "sincronizar"]
+            if not eleccion:
+                comando.append("--solo-vincular")
+            self.proceso_sincronizacion = subprocess.Popen(
+                comando, cwd=carpeta, creationflags=getattr(subprocess, 'CREATE_NEW_CONSOLE', 0))
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"No se pudo iniciar la sincronización:\n{e}")
+            return
+        self.btn_sincronizar.config(state='disabled', text="⏳ Sincronizando...")
+        self._esperar_sincronizacion()
+
+    def _esperar_sincronizacion(self):
+        """Revisa cada segundo si terminó la sincronización; al terminar recarga la lista"""
+        if self.proceso_sincronizacion.poll() is None:
+            self.root.after(1000, self._esperar_sincronizacion)
+            return
+        self.btn_sincronizar.config(state='normal', text="🔄 Sincronizar con Marketplace")
+        self._refrescar_lista_actual()
+        if self.articulo_actual:
+            self._on_seleccionar(None)
 
     def _nombre_seleccionado(self):
         """Carpeta (Articulo_N) del elemento seleccionado en la lista, o None"""

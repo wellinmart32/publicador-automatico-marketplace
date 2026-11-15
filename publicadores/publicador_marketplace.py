@@ -248,9 +248,9 @@ class PublicadorMarketplace:
         return False
 
     def llenar_precio(self, precio):
-        """Marketplace solo acepta precio entero"""
+        """Marketplace solo acepta precio entero: se redondea al más cercano (37.50 → 38, 49.99 → 50)"""
         try:
-            precio_texto = str(int(float(str(precio).replace(',', '.'))))
+            precio_texto = str(int(float(str(precio).replace(',', '.')) + 0.5))
         except ValueError:
             precio_texto = ''.join(c for c in str(precio) if c.isdigit()) or '0'
         print(f"💰 Precio: ${precio_texto}")

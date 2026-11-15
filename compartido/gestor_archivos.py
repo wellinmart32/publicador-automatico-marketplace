@@ -152,7 +152,8 @@ def _carpeta_articulo(numero):
 # ============================================================
 
 CLAVES_DATOS_ARTICULO = ['titulo', 'precio', 'marca', 'categoria', 'estado', 'ubicacion', 'descripcion',
-                         'disponibilidad', 'encuentro_publico', 'etiquetas', 'sku']
+                         'disponibilidad', 'encuentro_publico', 'etiquetas', 'sku',
+                         'id_marketplace', 'estado_marketplace', 'firma_marketplace']
 
 EXTENSIONES_IMAGEN = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
 
@@ -321,10 +322,21 @@ def guardar_numero_config(numero):
         f.write(str(numero))
 
 
+# Estados de Marketplace en los que el anuncio sigue vivo: la rotación no lo vuelve a publicar
+ESTADOS_MARKETPLACE_ACTIVOS = ('Disponible', 'Pendiente')
+
+
+def articulo_ya_publicado_en_marketplace(numero):
+    """True si la última sincronización dice que el artículo tiene un anuncio activo en Marketplace"""
+    datos = leer_datos_articulo(numero, avisar=False) or {}
+    return datos.get('estado_marketplace', '') in ESTADOS_MARKETPLACE_ACTIVOS
+
+
 def obtener_articulos_a_publicar(config, cantidad=None):
     """
     Arma la lista de artículos a publicar en esta ejecución, en orden de rotación.
-    Salta los artículos que no están listos (sin título, precio o imágenes).
+    Salta los artículos que no están listos (sin título, precio o imágenes) y los que ya tienen
+    un anuncio activo en Marketplace (según la última sincronización).
 
     Returns:
         list[int]: números de artículo
@@ -341,8 +353,12 @@ def obtener_articulos_a_publicar(config, cantidad=None):
     inicio = next((k for k, n in enumerate(numeros) if n >= siguiente), 0)
 
     resultado = []
+    ya_publicados = []
     for paso in range(total):
         numero = numeros[(inicio + paso) % total]
+        if articulo_ya_publicado_en_marketplace(numero):
+            ya_publicados.append(numero)
+            continue
         if articulo_listo_para_publicar(numero):
             resultado.append(numero)
             if len(resultado) == cantidad:
@@ -353,8 +369,11 @@ def obtener_articulos_a_publicar(config, cantidad=None):
     for i, numero in enumerate(resultado, 1):
         print(f"   {i}. 📋 Articulo_{numero}")
 
+    if ya_publicados:
+        print(f"⏭️  {len(ya_publicados)} artículo(s) se saltan porque ya tienen un anuncio activo en Marketplace")
+
     if not resultado:
-        print("📭 Ningún artículo está listo para publicar (falta título, precio o imágenes)")
+        print("📭 Ningún artículo está listo para publicar (falta título, precio o imágenes, o ya están publicados)")
 
     return resultado
 
@@ -538,6 +557,7 @@ MODULOS_DISPONIBLES = [
     ("extraer",  "🛍️  Extraer Catálogo de WhatsApp"),
     ("publicar", "▶️  Publicar Productos en Marketplace"),
     ("atender",  "💬  Atender Interesados en Messenger"),
+    ("sincronizar", "🔄  Sincronizar con Marketplace"),
 ]
 
 
