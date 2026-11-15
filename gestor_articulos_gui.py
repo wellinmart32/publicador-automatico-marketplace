@@ -207,6 +207,7 @@ class GestorArticulosGUI:
         canvas.configure(yscrollcommand=scrollbar_form.set)
 
         canvas.pack(side="left", fill="both", expand=True)
+        self.canvas_form = canvas
 
         # ==================== CAMPOS DEL FORMULARIO ====================
         self.vars = {}
@@ -459,6 +460,22 @@ class GestorArticulosGUI:
             fg="white",
             command=self._guardar_articulo
         ).pack(anchor='e', pady=(8, 0))
+        self._evitar_cambio_con_rueda()
+
+    def _evitar_cambio_con_rueda(self):
+        """Las listas desplegables no cambian de valor con la rueda: la rueda mueve el formulario"""
+        def girar(evento):
+            self.canvas_form.yview_scroll(int(-evento.delta / 120), 'units')
+            return 'break'
+
+        def recorrer(widget):
+            # La descripción (Text) conserva su propio desplazamiento con la rueda
+            if not isinstance(widget, (tk.Text, tk.Listbox)):
+                widget.bind('<MouseWheel>', girar)
+            for hijo in widget.winfo_children():
+                recorrer(hijo)
+
+        recorrer(self.canvas_form)
 
     def _cargar_articulos(self):
         """Carga la lista de artículos, marcando los que están listos para publicar"""
