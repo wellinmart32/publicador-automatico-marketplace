@@ -153,7 +153,7 @@ def _carpeta_articulo(numero):
 
 CLAVES_DATOS_ARTICULO = ['titulo', 'precio', 'marca', 'categoria', 'estado', 'ubicacion', 'descripcion',
                          'disponibilidad', 'encuentro_publico', 'etiquetas', 'sku',
-                         'id_marketplace', 'estado_marketplace', 'firma_marketplace']
+                         'id_marketplace', 'estado_marketplace', 'firma_marketplace', 'no_publicar']
 
 EXTENSIONES_IMAGEN = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
 
@@ -326,17 +326,38 @@ def guardar_numero_config(numero):
 ESTADOS_MARKETPLACE_ACTIVOS = ('Disponible', 'Pendiente')
 
 
+# Anuncios que la rotación no vuelve a publicar sola: vendidos y rechazados por duplicado
+ESTADOS_MARKETPLACE_NO_REPUBLICAR = ('Vendido', 'Rechazado (parece duplicado)')
+
+
 def articulo_ya_publicado_en_marketplace(numero):
     """True si la última sincronización dice que el artículo tiene un anuncio activo en Marketplace"""
     datos = leer_datos_articulo(numero, avisar=False) or {}
     return datos.get('estado_marketplace', '') in ESTADOS_MARKETPLACE_ACTIVOS
 
 
+def motivo_de_salto_en_rotacion(numero):
+    """
+    Por qué la rotación no publica un artículo: 'no_publicar', 'activo', 'vendido', 'rechazado', o None si puede publicarse.
+    """
+    datos = leer_datos_articulo(numero, avisar=False) or {}
+    estado = datos.get('estado_marketplace', '')
+    if (datos.get('no_publicar') or '').strip().lower() in ('si', 'sí'):
+        return 'no_publicar'
+    if estado in ESTADOS_MARKETPLACE_ACTIVOS:
+        return 'activo'
+    if estado == 'Vendido':
+        return 'vendido'
+    if estado in ESTADOS_MARKETPLACE_NO_REPUBLICAR:
+        return 'rechazado'
+    return None
+
+
 def obtener_articulos_a_publicar(config, cantidad=None):
     """
     Arma la lista de artículos a publicar en esta ejecución, en orden de rotación.
-    Salta los artículos que no están listos (sin título, precio o imágenes) y los que ya tienen
-    un anuncio activo en Marketplace (según la última sincronización).
+    Salta los artículos que no están listos (sin título, precio o imágenes), los marcados "No publicar",
+    y los que ya están en Marketplace (activos), vendidos o rechazados (según la última sincronización).
 
     Returns:
         list[int]: números de artículo
@@ -353,11 +374,12 @@ def obtener_articulos_a_publicar(config, cantidad=None):
     inicio = next((k for k, n in enumerate(numeros) if n >= siguiente), 0)
 
     resultado = []
-    ya_publicados = []
+    saltados = {'no_publicar': [], 'activo': [], 'vendido': [], 'rechazado': []}
     for paso in range(total):
         numero = numeros[(inicio + paso) % total]
-        if articulo_ya_publicado_en_marketplace(numero):
-            ya_publicados.append(numero)
+        motivo = motivo_de_salto_en_rotacion(numero)
+        if motivo:
+            saltados[motivo].append(numero)
             continue
         if articulo_listo_para_publicar(numero):
             resultado.append(numero)
@@ -369,11 +391,15 @@ def obtener_articulos_a_publicar(config, cantidad=None):
     for i, numero in enumerate(resultado, 1):
         print(f"   {i}. 📋 Articulo_{numero}")
 
-    if ya_publicados:
-        print(f"⏭️  {len(ya_publicados)} artículo(s) se saltan porque ya tienen un anuncio activo en Marketplace")
+    nombres_motivo = {'no_publicar': 'marcados "No publicar"', 'activo': 'ya publicados en Marketplace',
+                      'vendido': 'vendidos', 'rechazado': 'rechazados por duplicado'}
+    for motivo, lista in saltados.items():
+        if lista:
+            print(f"⏭️  {len(lista)} artículo(s) {nombres_motivo[motivo]} se saltan: "
+                  + ", ".join(f"Articulo_{n}" for n in lista))
 
     if not resultado:
-        print("📭 Ningún artículo está listo para publicar (falta título, precio o imágenes, o ya están publicados)")
+        print("📭 Ningún artículo está listo para publicar (falta título, precio o imágenes, o ya están publicados, vendidos o marcados como No publicar)")
 
     return resultado
 

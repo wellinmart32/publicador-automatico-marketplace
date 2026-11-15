@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from compartido.gestor_archivos import (
     leer_config_global, leer_datos_articulo, guardar_datos_articulo, numeros_articulos,
-    articulo_listo_para_publicar, crear_carpeta_articulo, _carpeta_productos,
+    articulo_listo_para_publicar, crear_carpeta_articulo, _carpeta_productos, ESTADOS_MARKETPLACE_ACTIVOS,
     ESTADOS_ARTICULO, CATEGORIAS_ARTICULO, EXTENSIONES_IMAGEN
 )
 import subprocess
@@ -108,7 +108,9 @@ class GestorArticulosGUI:
             text="0 artículos",
             font=("Segoe UI", 8),
             fg="gray",
-            bg="#f0f0f0"
+            bg="#f0f0f0",
+            justify='left',
+            wraplength=235
         )
         self.lbl_contador.pack(anchor='w', pady=(0, 5))
 
@@ -337,6 +339,24 @@ class GestorArticulosGUI:
                 bg="#f0f0f0", font=("Segoe UI", 10)
             ).pack(side='left', padx=(0, 10))
 
+        # No publicar + estado en Marketplace
+        self.vars['no_publicar'] = tk.StringVar()
+        tk.Checkbutton(
+            frame_form, text="⏸ No publicar este producto (la rotación lo salta)",
+            variable=self.vars['no_publicar'], onvalue='Si', offvalue='',
+            bg="#f0f0f0", font=("Segoe UI", 9)
+        ).pack(anchor='w', padx=15, pady=(10, 0))
+
+        self.lbl_estado_mk = tk.Label(
+            frame_form, text="", font=("Segoe UI", 9, "bold"), bg="#f0f0f0", fg="gray"
+        )
+        self.lbl_estado_mk.pack(anchor='w', padx=15, pady=(6, 0))
+
+        self.btn_permitir = tk.Button(
+            frame_form, text="🔁 Permitir publicar de nuevo", font=("Segoe UI", 9),
+            bg="#fd7e14", fg="white", command=self._permitir_publicar_de_nuevo
+        )
+
         # Etiquetas
         tk.Label(
             frame_form,
@@ -484,6 +504,7 @@ class GestorArticulosGUI:
 
         self.numeros_lista = numeros_articulos()
         listos = 0
+        cuenta = {'mk': 0, 'solo_app': 0, 'no_publicar': 0, 'vendidos': 0, 'rechazados': 0}
         for numero in self.numeros_lista:
             datos = leer_datos_articulo(numero, avisar=False) or {}
             listo = articulo_listo_para_publicar(numero)
@@ -491,13 +512,32 @@ class GestorArticulosGUI:
             titulo = datos.get('titulo', '')
             estado_mk = datos.get('estado_marketplace', '')
             icono_mk = ICONOS_ESTADO_MARKETPLACE.get(estado_mk, '▫️')
+            no_publicar = (datos.get('no_publicar') or '').strip().lower() in ('si', 'sí')
+            if no_publicar:
+                icono_mk = '⏸'
+                cuenta['no_publicar'] += 1
+            if estado_mk in ESTADOS_MARKETPLACE_ACTIVOS:
+                cuenta['mk'] += 1
+            elif estado_mk == 'Vendido':
+                cuenta['vendidos'] += 1
+            elif estado_mk.startswith('Rechazado'):
+                cuenta['rechazados'] += 1
+            elif not no_publicar:
+                cuenta['solo_app'] += 1
             texto = f"{'✅' if listo else '⚠️'}{icono_mk} Articulo_{numero}" + (f" · {titulo[:20]}" if titulo else "")
             self.lista.insert(tk.END, texto)
-            color = COLORES_ESTADO_MARKETPLACE.get(estado_mk)
+            color = '#9e9e9e' if no_publicar else COLORES_ESTADO_MARKETPLACE.get(estado_mk)
             if color:
                 self.lista.itemconfig(tk.END, fg=color)
 
-        self.lbl_contador.config(text=f"{len(self.numeros_lista)} artículos · {listos} listos para publicar")
+        partes = [f"{len(self.numeros_lista)} productos", f"{cuenta['mk']} en Marketplace",
+                  f"{cuenta['solo_app']} solo en la app"]
+        for clave, etiqueta in (('no_publicar', 'no publicar'), ('vendidos', 'vendidos'), ('rechazados', 'rechazados')):
+            if cuenta[clave]:
+                partes.append(f"{cuenta[clave]} {etiqueta}")
+        if listos < len(self.numeros_lista):
+            partes.append(f"{len(self.numeros_lista) - listos} incompletos")
+        self.lbl_contador.config(text=" · ".join(partes))
 
     def _sincronizar_marketplace(self):
         """Abre la sincronización en su propia consola y recarga la lista cuando termina"""
@@ -591,7 +631,45 @@ class GestorArticulosGUI:
         if datos.get('descripcion'):
             self.texto_desc.insert('1.0', datos['descripcion'])
 
+        self._mostrar_estado_marketplace(datos)
         self._cargar_imagenes()
+
+    def _mostrar_estado_marketplace(self, datos):
+        """Muestra el estado del anuncio en Marketplace; si está vendido o rechazado ofrece publicarlo de nuevo"""
+        estado = datos.get('estado_marketplace', '')
+        if estado:
+            self.lbl_estado_mk.config(text=f"Marketplace: {estado}",
+                                      fg=COLORES_ESTADO_MARKETPLACE.get(estado, 'gray'))
+        else:
+            self.lbl_estado_mk.config(text="Marketplace: sin sincronizar o solo en la app", fg="gray")
+        if estado == 'Vendido' or estado.startswith('Rechazado'):
+            self.btn_permitir.pack(anchor='w', padx=15, pady=(4, 0), after=self.lbl_estado_mk)
+        else:
+            self.btn_permitir.pack_forget()
+
+    def _permitir_publicar_de_nuevo(self):
+        """Quita el estado Vendido/Rechazado para que la rotación vuelva a publicar el producto"""
+        if not self.articulo_actual:
+            return
+        if not messagebox.askyesno(
+            "🔁 Permitir publicar de nuevo",
+            f"{self.articulo_actual} volverá a publicarse en la rotación.\n\n"
+            "Si estaba rechazado por duplicado, cambia antes su foto o su descripción;\n"
+            "si no, Facebook lo rechazará otra vez.\n\n¿Continuar?"
+        ):
+            return
+        try:
+            numero = self._numero_actual()
+            datos = leer_datos_articulo(numero, avisar=False) or {}
+            datos['estado_marketplace'] = ''
+            datos['id_marketplace'] = ''
+            datos['firma_marketplace'] = ''
+            guardar_datos_articulo(numero, datos)
+        except Exception as e:
+            messagebox.showerror("❌ Error", f"No se pudo actualizar: {e}")
+            return
+        self._refrescar_lista_actual()
+        self._on_seleccionar(None)
 
     def _cargar_imagenes(self):
         """Carga la lista de imágenes del artículo actual"""
