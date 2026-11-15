@@ -549,7 +549,21 @@ class PanelControl:
             command=lambda: [ventana.destroy(), self._atender_interesados()] if es_full else self._mostrar_mensaje_upgrade()
         ).pack(fill='x', pady=(0, 8))
 
-        # Acción 4 — Ejecutar Secuencia Configurada
+        # Acción 4 — Sincronizar con Marketplace
+        tk.Button(
+            frame,
+            text="🔄  Sincronizar con Marketplace" if es_full else "🔒  Sincronizar con Marketplace  —  versión Completa",
+            font=("Segoe UI", 11, "bold") if es_full else ("Segoe UI", 11),
+            bg="#6f42c1" if es_full else "#e0e0e0",
+            fg="white" if es_full else "#9e9e9e",
+            cursor="hand2",
+            anchor='w',
+            padx=15,
+            pady=8,
+            command=lambda: [ventana.destroy(), self._sincronizar_marketplace()] if es_full else self._mostrar_mensaje_upgrade()
+        ).pack(fill='x', pady=(0, 8))
+
+        # Acción 5 — Ejecutar Secuencia Configurada
         if es_full:
             tk.Button(
                 frame,
@@ -588,7 +602,7 @@ class PanelControl:
             command=ventana.destroy
         ).pack(pady=15)
 
-        self._centrar_ventana(ventana, 500, 430)
+        self._centrar_ventana(ventana, 500, 490)
         ventana.deiconify()
 
     # ==================== ACCIONES ====================
@@ -671,6 +685,9 @@ class PanelControl:
     def _atender_interesados(self):
         self._lanzar_modulo("atender", "💬 Atendiendo interesados", "Revisando la bandeja de Marketplace...")
 
+    def _sincronizar_marketplace(self):
+        self._lanzar_modulo("sincronizar", "🔄 Sincronizando", "Leyendo tus anuncios de Marketplace...")
+
     def _abrir_configurador(self, pestaña=None, pestana=None):
         """Abre el configurador — bloquea el grid mientras está abierto"""
         try:
@@ -736,6 +753,7 @@ class PanelControl:
             "Adquiérela en automapro.com para desbloquear:\n"
             "• Extraer Catálogo de WhatsApp\n"
             "• Atender Interesados en Messenger\n"
+            "• Sincronizar con Marketplace\n"
             "• Editor visual de productos\n"
             "• Tareas Automáticas"
         )
@@ -815,6 +833,8 @@ class PanelControl:
              "• Abre el navegador configurado con tu sesión de Facebook guardada\n"
              "• Toma los productos de la carpeta 'ArticulosMarketplace' en orden de rotación\n"
              "• Salta los productos sin título, precio o imágenes\n"
+             "• Salta también los que ya están publicados, vendidos, rechazados o marcados 'No publicar'\n"
+             "• El precio se redondea al entero más cercano (37.50 → 38)\n"
              "• Sube las imágenes (hasta 10) y llena título, precio, categoría, estado,\n"
              "  ubicación y descripción\n"
              "• Publica la cantidad configurada (1 por defecto)\n"
@@ -846,16 +866,30 @@ class PanelControl:
              "Antes de usarlo:\n"
              "• Configura el contacto del vendedor en Configurador → Atención"),
 
+            ("🔄  Sincronizar con Marketplace",
+             "🔄 SINCRONIZAR CON MARKETPLACE\n\n"
+             "Refleja en la app lo que ya tienes publicado en Facebook Marketplace.\n\n"
+             "¿Qué hace?\n"
+             "• Lee 'Tus publicaciones' de Facebook (todos tus anuncios)\n"
+             "• Vincula los anuncios con tus productos por el título\n"
+             "• Importa como productos nuevos los anuncios que no tienes en la app\n"
+             "• Guarda el estado de cada anuncio (Disponible, Vendido, Rechazado...)\n"
+             "• La rotación ya no vuelve a publicar los que están en Marketplace\n\n"
+             "Notas:\n"
+             "• Nunca borra ni cambia tus productos: solo añade el estado y el id del anuncio\n"
+             "• Desde el Gestor de Productos puedes elegir 'solo vincular' (sin importar)\n"
+             "• Úsalo la primera vez y cada cierto tiempo para mantener los estados al día"),
+
             ("⚡  Ejecutar Secuencia",
              "⚡ EJECUTAR SECUENCIA\n\n"
              "Ejecuta varios módulos seguidos, en el orden definido en\n"
              "Configurador → Secuencia.\n\n"
-             "Ejemplo: Extraer catálogo → Publicar productos → Atender interesados"),
+             "Ejemplo: Sincronizar → Publicar productos → Atender interesados"),
 
             ("🗓️  Tareas Automáticas",
              "🗓️ TAREAS AUTOMÁTICAS\n\n"
              "Programa el sistema para que trabaje solo, a la hora y los días que elijas.\n\n"
-             "• Cada tarea tiene sus propias acciones (publicar, extraer, atender)\n"
+             "• Cada tarea tiene sus propias acciones (publicar, extraer, atender, sincronizar)\n"
              "• Cada tarea puede publicar su propia cantidad de productos\n"
              "• Lo que pasa en cada ejecución queda en 'registro_tareas.log'\n"
              "• Requiere la versión Completa"),
@@ -874,7 +908,11 @@ class PanelControl:
              "Crea y edita tus productos sin abrir carpetas:\n"
              "• Título, precio, categoría, estado, ubicación y descripción\n"
              "• Imágenes de cada producto\n"
-             "• Indica qué productos están listos para publicar"),
+             "• Indica qué productos están listos para publicar\n"
+             "• Muestra el estado de cada uno en Marketplace (verde = publicado, rojo = vendido,\n"
+             "  naranja = rechazado) y un contador arriba de la lista\n"
+             "• Casilla 'No publicar' para que la rotación se salte un producto\n"
+             "• Botón 'Sincronizar con Marketplace' para traer lo que ya tienes publicado"),
 
             ("📊  Estadísticas",
              "📊 ESTADÍSTICAS\n\n"

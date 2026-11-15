@@ -1,6 +1,6 @@
 # 🛍️ Marketplace Automático
 
-Publica tus productos en **Facebook Marketplace** de forma automática, extrae tu catálogo de **WhatsApp Business** y (próximamente) atiende a los interesados. Parte de la plataforma **AutomaPro**.
+Publica tus productos en **Facebook Marketplace** de forma automática, extrae tu catálogo de **WhatsApp Business**, atiende a los interesados y se sincroniza con lo que ya tienes publicado. Parte de la plataforma **AutomaPro**.
 
 Versión 2.0.0 · Windows 10/11 · Python 3.8+ (solo para ejecutar desde el código)
 
@@ -12,7 +12,8 @@ Versión 2.0.0 · Windows 10/11 · Python 3.8+ (solo para ejecutar desde el cód
 |---|---|
 | ▶️ **Publicar productos** | Publica uno o varios productos por ejecución, en rotación, con reintentos y límites diarios para cuidar tu cuenta |
 | 🛍️ **Extraer catálogo** | Copia productos (título, precio, descripción e imágenes) de tu catálogo de WhatsApp Business a las carpetas de productos |
-| 💬 **Atender interesados** | Responde a quienes preguntan por tus productos y avisa al vendedor *(llega en una próxima actualización)* |
+| 💬 **Atender interesados** | Responde a quienes preguntan por tus productos y avisa al vendedor por WhatsApp |
+| 🔄 **Sincronizar con Marketplace** | Lee tus anuncios de Facebook, los vincula con tus productos e importa los que aún no tienes en la app; la rotación no repite los que ya están publicados |
 
 Funciona con **Firefox, Chrome o Edge**. Cada acción guarda su sesión en `perfiles/` para no volver a iniciar sesión.
 
@@ -32,6 +33,8 @@ gestor_registro.py          Registro y estadísticas
 compartido/                 Configuración, productos, tareas, navegador, avisos
 publicadores/               Publicación en Marketplace
 extractores/                Extracción del catálogo de WhatsApp
+atendedores/                Atención de interesados en Messenger y avisos por WhatsApp
+sincronizadores/            Sincronización con "Tus publicaciones" de Marketplace
 ArticulosMarketplace/       Tus productos: Articulo_N/datos.txt + imagenes/
 ```
 
@@ -47,12 +50,16 @@ También puedes lanzar cada acción desde los `.bat`:
 - `2_Extraer_Catalogo.bat` → extraer catálogo
 - `3_Atender_Interesados.bat` → atender interesados
 - `4_Configurador.bat` → configuración
+- `5_Sincronizar_Marketplace.bat` → sincronizar con Marketplace
 
 Desde la línea de comandos:
 
 ```bash
 py publicar_marketplace.py --modulo publicar
 py publicar_marketplace.py --modulo extraer
+py publicar_marketplace.py --modulo atender
+py publicar_marketplace.py --modulo sincronizar
+py publicar_marketplace.py --modulo sincronizar --solo-vincular
 py publicar_marketplace.py --secuencia
 py publicar_marketplace.py --tarea=NombreDeLaTarea
 ```
@@ -61,7 +68,7 @@ py publicar_marketplace.py --tarea=NombreDeLaTarea
 
 ## 📦 Productos
 
-Cada producto es una carpeta `ArticulosMarketplace/Articulo_N/` con `datos.txt` (título, precio, categoría, estado, ubicación, descripción…) y una subcarpeta `imagenes/` (hasta 10). Un producto está **listo** cuando tiene título, precio y al menos una imagen. Edítalos desde el **Gestor de Productos**.
+Cada producto es una carpeta `ArticulosMarketplace/Articulo_N/` con `datos.txt` (título, precio, categoría, estado, ubicación, descripción…) y una subcarpeta `imagenes/` (hasta 10). Un producto está **listo** cuando tiene título, precio y al menos una imagen. Edítalos desde el **Gestor de Productos**, donde cada producto muestra su estado en Marketplace (🟢 Disponible, 🔴 Vendido, 🟠 Rechazado por duplicado) y puede marcarse como **No publicar**. La rotación salta los que ya están publicados, vendidos, rechazados o marcados. El precio se redondea al entero más cercano al publicar (37.50 → 38).
 
 ---
 
@@ -85,4 +92,5 @@ El **Gestor de Tareas** crea tareas del Programador de Windows con las acciones 
 
 - **El navegador no abre**: cierra el navegador y vuelve a intentar; se reintenta una vez solo.
 - **Facebook pide iniciar sesión o verificar**: hazlo en la ventana que se abrió; el programa espera hasta 2–3 minutos.
-- **Un producto no se publica**: revisa que tenga ✅ en el Gestor de Productos.
+- **Un producto no se publica**: revisa que tenga ✅ en el Gestor de Productos y que no esté publicado, vendido, rechazado o marcado "No publicar" (si es un rechazado, usa "Permitir publicar de nuevo" después de cambiar su foto).
+- **Facebook rechaza un anuncio por "parece un duplicado"**: usa una foto y una descripción distintas a las de otro anuncio tuyo.
