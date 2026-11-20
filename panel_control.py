@@ -104,7 +104,12 @@ class PanelControl:
         resultado = self.gestor_licencias.verificar_licencia(codigo, mostrar_mensajes=False)
 
         if not resultado['valida']:
-            messagebox.showerror("Licencia Inválida", "Tu licencia no es válida o ha expirado.")
+            if resultado.get('modalidad') == 'SUSCRIPCION':
+                mensaje = resultado.get('mensaje') or "La suscripción venció. Renueva para seguir usando la aplicación."
+                if messagebox.askyesno("Suscripción vencida", mensaje + "\n\n¿Quieres renovarla ahora?"):
+                    self._abrir_upgrade()
+            else:
+                messagebox.showerror("Licencia Inválida", "Tu licencia no es válida o ha expirado.")
             return None
 
         # Verificar expiración para licencias TRIAL

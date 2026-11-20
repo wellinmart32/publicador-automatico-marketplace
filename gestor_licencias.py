@@ -214,6 +214,9 @@ class GestorLicencias:
             if cache.get('es_developer_permanente'):
                 return cache
             if cache.get('tipo') in ['FULL', 'MASTER'] and cache.get('valida'):
+                # Una suscripción vencida no se puede usar sin conexión
+                if self._suscripcion_vencida(cache):
+                    return None
                 return cache
             fecha_verificacion = cache.get('fecha_verificacion')
             if fecha_verificacion:
@@ -225,6 +228,18 @@ class GestorLicencias:
             print(f"Error leyendo cache: {e}")
         return None
 
+    def _suscripcion_vencida(self, cache):
+        """True si la licencia es una suscripción y su fecha de vencimiento ya pasó"""
+        if cache.get('modalidad') != 'SUSCRIPCION':
+            return False
+        fecha = cache.get('fecha_expiracion')
+        if not fecha:
+            return False
+        try:
+            return datetime.now().date() > datetime.fromisoformat(str(fecha)[:10]).date()
+        except Exception:
+            return False
+
     def _guardar_cache_local(self, datos_licencia):
         """Guarda los datos de la licencia en cache local y respaldo"""
         datos_cache = {
@@ -232,6 +247,8 @@ class GestorLicencias:
             'valida': datos_licencia.get('valida'),
             'expirada': datos_licencia.get('expirada'),
             'dias_restantes': datos_licencia.get('diasRestantes'),
+            'modalidad': datos_licencia.get('modalidad'),
+            'fecha_expiracion': datos_licencia.get('fechaExpiracion'),
             'fecha_verificacion': datetime.now().isoformat(),
             'es_developer_permanente': datos_licencia.get('developer_permanente', False)
         }
@@ -340,6 +357,8 @@ class GestorLicencias:
                     'expirada': datos.get('expirada', False),
                     'diasRestantes': datos.get('diasRestantes'),
                     'mensaje': datos.get('mensaje', ''),
+                    'modalidad': datos.get('modalidad'),
+                    'cancelada': datos.get('cancelada', False),
                     'desde_cache': False,
                     'developer_permanente': False
                 }

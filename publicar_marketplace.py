@@ -40,6 +40,9 @@ def verificar_licencia_inicio():
     resultado = gestor_lic.verificar_e_iniciar()
 
     if not resultado.get('valida'):
+        if resultado.get('modalidad') == 'SUSCRIPCION':
+            from dialogos_licencia import DialogosLicencia
+            DialogosLicencia.mostrar_suscripcion_vencida(gestor_lic.obtener_codigo_guardado(), resultado.get('mensaje'))
         return None
 
     # Verificar expiración para TRIAL
@@ -62,6 +65,9 @@ def verificar_licencia_inicio():
 
     if resultado.get('tipo') == 'FULL' or resultado.get('developer_permanente'):
         print("\n✅ Licencia completa activada - Todas las funciones desbloqueadas\n")
+        if resultado.get('modalidad') == 'SUSCRIPCION':
+            from dialogos_licencia import DialogosLicencia
+            DialogosLicencia.mostrar_aviso_suscripcion(resultado.get('diasRestantes'), resultado.get('cancelada', False))
 
     return resultado
 

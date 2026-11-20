@@ -41,8 +41,8 @@ class DialogosLicencia:
         mensaje = (
             "Tu período de prueba ha terminado\n\n"
             "Desbloquea todas las funciones premium ahora\n\n"
-            "Precio: $29.99 USD (pago único)\n"
-            "✅ Sin suscripciones\n"
+            "Suscripción mensual o anual (elige tu plan en la web)\n"
+            "✅ Cancela cuando quieras\n"
             "✅ Actualizaciones gratis\n"
             "✅ Soporte prioritario"
         )
@@ -64,6 +64,39 @@ class DialogosLicencia:
             return False
 
         return False
+
+    @staticmethod
+    def mostrar_suscripcion_vencida(codigo_licencia, mensaje=None):
+        """Mostrar diálogo cuando la suscripción venció y ofrecer renovarla en la web"""
+        root = DialogosLicencia._root_topmost()
+
+        texto = (mensaje or "La suscripción venció. Renueva para seguir usando la aplicación.")
+        texto += "\n\n¿Quieres renovarla ahora?"
+
+        respuesta = messagebox.askquestion(
+            "Suscripción vencida",
+            texto,
+            icon='warning',
+            type='yesno',
+            default='yes',
+            parent=root
+        )
+
+        root.destroy()
+
+        if respuesta == 'yes':
+            url = f"https://automapro-frontend.vercel.app/cliente/comprar?codigo={codigo_licencia}&app={ID_APP_WEB}"
+            webbrowser.open(url)
+
+        return False
+
+    @staticmethod
+    def mostrar_aviso_suscripcion(dias_restantes, cancelada=False):
+        """Avisar en consola cuando la suscripción fue cancelada o está por vencer"""
+        if cancelada:
+            print(f"\n⚠️  Suscripción cancelada — tienes acceso {dias_restantes} día(s) más\n")
+        elif dias_restantes is not None and dias_restantes <= 3:
+            print(f"\n⚠️  Tu suscripción vence en {dias_restantes} día(s). Si el pago no se procesó, revisa tu método de pago.\n")
 
     @staticmethod
     def mostrar_banner_trial(dias_restantes):
@@ -109,7 +142,7 @@ class DialogosLicencia:
         mensaje = (
             "Esta función requiere licencia completa\n\n"
             "Desbloquea esta y todas las funciones premium\n"
-            "Precio: $29.99 USD (pago único)"
+            "Suscripción mensual o anual (elige tu plan en la web)"
         )
 
         respuesta = messagebox.askquestion(
