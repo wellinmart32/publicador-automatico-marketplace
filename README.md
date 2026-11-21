@@ -2,7 +2,7 @@
 
 Publica tus productos en **Facebook Marketplace** de forma automática, extrae tu catálogo de **WhatsApp Business**, atiende a los interesados y se sincroniza con lo que ya tienes publicado. Parte de la plataforma **AutomaPro**.
 
-Versión 2.0.0 · Windows 10/11 · Python 3.8+ (solo para ejecutar desde el código)
+Versión 2.1.0 · Windows 10/11 · Python 3.8+ (solo para ejecutar desde el código)
 
 ---
 

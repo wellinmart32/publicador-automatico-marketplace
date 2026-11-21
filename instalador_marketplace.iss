@@ -1,6 +1,6 @@
 [Setup]
 AppName=Marketplace AutoPro
-AppVersion=2.0.0
+AppVersion=2.1.0
 AppPublisher=AutomaPro
 AppPublisherURL=https://automapro.com
 DefaultDirName={userdocs}\AutomaPro\Marketplace
